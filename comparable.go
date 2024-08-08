@@ -1,42 +1,47 @@
 package main
 
+import "math"
+
 type Comparable interface {
-	Compare(other Comparable) int
+	CompareTo(other Comparable) int
+	Inf(int) Comparable
 }
 
 type Int int
-type Float float64
 type String string
 
-func (ik Int) Compare(other Comparable) int {
+func (i Int) CompareTo(other Comparable) int {
 	otherInt := other.(Int)
-	if ik == otherInt {
-		return 0
+	if i > otherInt {
+		return 1
 	}
-	if ik < otherInt {
+	if i < otherInt {
 		return -1
 	}
-	return 1
+	return 0
 }
 
-func (fk Float) Compare(other Comparable) int {
-	otherFloat := other.(Float)
-	if fk == otherFloat {
-		return 0
+func (i Int) Inf(sign int) Comparable {
+	if sign >= 0 {
+		return Int(math.MaxInt64)
 	}
-	if fk < otherFloat {
-		return -1
-	}
-	return 1
+	return Int(-math.MaxInt64)
 }
 
-func (sk String) Compare(other Comparable) int {
+func (s String) CompareTo(other Comparable) int {
 	otherString := other.(String)
-	if sk == otherString {
-		return 0
+	if s > otherString {
+		return 1
 	}
-	if sk < otherString {
+	if s < otherString {
 		return -1
 	}
-	return 1
+	return 0
+}
+
+func (s String) Inf(sign int) Comparable {
+	if sign >= 0 {
+		return String("\xff\xff\xff\xff")
+	}
+	return String("")
 }
