@@ -1,47 +1,39 @@
 package main
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
 	"sync"
 )
 
-type SLItem[K Comparable] struct {
-	Key K
-	Val any
-}
-
-type SLNode[K Comparable] struct {
-	Key     K
-	Val     any
-	forward []*SLNode[K]
-}
-
-func NewNode[K Comparable](level int, key K, val any) *SLNode[K] {
-	return &SLNode[K]{key, val, make([]*SLNode[K], level+1)}
-}
-
-func (sn SLNode[K]) String() string {
-	return fmt.Sprintf("{key: %v, val: %v}", sn.Key, sn.Val)
-}
-
-func (sn SLNode[K]) Item() SLItem[K] {
-	return SLItem[K]{sn.Key, sn.Val}
-}
-
 type SkipList[K Comparable] struct {
 	m        sync.RWMutex
-	MaxLevel int
-	Level    int
-	P        float64
-	Size     int
+	maxLevel int
+	level    int
+	p        float64
+	size     int
 	header   *SLNode[K]
+}
+
+func (sl *SkipList[K]) Size() int {
+	return sl.size
+}
+
+func (sl *SkipList[K]) MaxLevel() int {
+	return sl.maxLevel
+}
+
+func (sl *SkipList[K]) Level() int {
+	return sl.maxLevel
+}
+
+func (sl *SkipList[K]) P() float64 {
+	return sl.p
 }
 
 func (sl *SkipList[K]) randomLevel() int {
 	level := 0
-	for i := 0; i < sl.MaxLevel && rand.Float64() < sl.P; i++ {
+	for i := 0; i < sl.maxLevel && rand.Float64() < sl.p; i++ {
 		level++
 	}
 	return level
@@ -63,10 +55,10 @@ func NewStringSkipList(maxLevel int, p float64) *SkipList[String] {
 	}
 
 	return &SkipList[String]{
-		MaxLevel: maxLevel - 1,
-		Level:    0,
-		P:        p,
-		Size:     0,
+		maxLevel: maxLevel - 1,
+		level:    0,
+		p:        p,
+		size:     0,
 		header:   header,
 	}
 }
@@ -79,19 +71,19 @@ func NewIntSkipList(maxLevel int, p float64) *SkipList[Int] {
 	}
 
 	return &SkipList[Int]{
-		MaxLevel: maxLevel - 1,
-		Level:    0,
-		P:        p,
-		Size:     0,
+		maxLevel: maxLevel - 1,
+		level:    0,
+		p:        p,
+		size:     0,
 		header:   header,
 	}
 }
 
 func (sl *SkipList[K]) Insert(searchKey K, val any) {
 	sl.m.Lock()
-	update := make([]*SLNode[K], sl.MaxLevel)
+	update := make([]*SLNode[K], sl.maxLevel)
 	x := sl.header
-	for i := sl.Level; i >= 0; i-- {
+	for i := sl.level; i >= 0; i-- {
 		for sl.less(x.forward[i].Key, searchKey) {
 			x = x.forward[i]
 		}
@@ -102,11 +94,11 @@ func (sl *SkipList[K]) Insert(searchKey K, val any) {
 		x.Val = val
 	} else {
 		lvl := sl.randomLevel()
-		if lvl > sl.Level {
-			for i := sl.Level + 1; i <= lvl; i++ {
+		if lvl > sl.level {
+			for i := sl.level + 1; i <= lvl; i++ {
 				update[i] = sl.header
 			}
-			sl.Level = lvl
+			sl.level = lvl
 		}
 
 		x = NewNode[K](lvl, searchKey, val)
@@ -121,8 +113,8 @@ func (sl *SkipList[K]) Insert(searchKey K, val any) {
 func (sl *SkipList[K]) Delete(searchKey K) {
 	sl.m.Lock()
 
-	update, x := make([]*SLNode[K], sl.MaxLevel), sl.header
-	for i := sl.Level; i >= 0; i-- {
+	update, x := make([]*SLNode[K], sl.maxLevel), sl.header
+	for i := sl.level; i >= 0; i-- {
 		for sl.less(x.forward[i].Key, searchKey) {
 			x = x.forward[i]
 		}
@@ -130,15 +122,15 @@ func (sl *SkipList[K]) Delete(searchKey K) {
 	}
 	x = x.forward[0]
 	if sl.equal(x.Key, searchKey) {
-		for i := 0; i <= sl.Level; i++ {
+		for i := 0; i <= sl.level; i++ {
 			if update[i].forward[i] != x {
 				break
 			}
 			update[i].forward[i] = x.forward[i]
 		}
 		x = nil
-		for i := sl.Level; i > 0 && sl.header.forward[sl.Level] == nil; i-- {
-			sl.Level = sl.Level - 1
+		for i := sl.level; i > 0 && sl.header.forward[sl.level] == nil; i-- {
+			sl.level = sl.level - 1
 		}
 	}
 
@@ -150,7 +142,7 @@ func (sl *SkipList[K]) Search(searchKey K) any {
 	defer sl.m.RUnlock()
 
 	x := sl.header
-	for i := sl.Level; i >= 0; i-- {
+	for i := sl.level; i >= 0; i-- {
 		for sl.less(x.forward[i].Key, searchKey) {
 			x = x.forward[i]
 		}
@@ -166,7 +158,7 @@ func (sl *SkipList[K]) String() string {
 	sl.m.RLock()
 
 	res := ""
-	for i := sl.Level; i >= 0; i-- {
+	for i := sl.level; i >= 0; i-- {
 		level := sl.header.forward[i]
 		res += level.String()
 		for i < len(level.forward) && level.forward[i] != nil {
