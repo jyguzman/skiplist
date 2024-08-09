@@ -7,8 +7,8 @@ type Comparable interface {
 	Inf(int) Comparable
 }
 
-type Int int
-type String string
+type Comp[T any] interface {
+}
 
 func (i Int) CompareTo(other Comparable) int {
 	otherInt := other.(Int)

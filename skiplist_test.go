@@ -3,7 +3,7 @@ package main
 import "testing"
 
 func TestIntSkipListInsert(t *testing.T) {
-	sl := NewIntSkipList(16, 0.5)
+	sl := SkipListWithIntKeys(16, 0.5)
 
 	sl.Insert(1, "hello, world")
 	if sl.Search(1) != "hello, world" {

@@ -3,7 +3,7 @@ package main
 import "fmt"
 
 func main() {
-	sl := NewIntSkipList(16, 0.5)
+	sl := SkipListWithIntKeys(15, 0.5)
 	sl.Insert(10, "hello")
 	sl.Insert(20, "world")
 	sl.Insert(5, "before")

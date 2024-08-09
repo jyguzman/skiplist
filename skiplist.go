@@ -48,14 +48,14 @@ func (sl *SkipList[K]) equal(x, y Comparable) bool {
 }
 
 func NewStringSkipList(maxLevel int, p float64) *SkipList[String] {
-	header := NewNode[String](maxLevel, "", nil)
-	NIL := NewNode[String](0, "\xff\xff\xff\xff", nil)
+	header := NewNode[String](maxLevel+1, "", nil)
+	NIL := NewNode[String](0, "\uffff", nil)
 	for i := 0; i < maxLevel; i++ {
 		header.forward[i] = NIL
 	}
 
 	return &SkipList[String]{
-		maxLevel: maxLevel - 1,
+		maxLevel: maxLevel,
 		level:    0,
 		p:        p,
 		size:     0,
@@ -63,15 +63,15 @@ func NewStringSkipList(maxLevel int, p float64) *SkipList[String] {
 	}
 }
 
-func NewIntSkipList(maxLevel int, p float64) *SkipList[Int] {
-	header := NewNode[Int](maxLevel, -math.MaxInt64, nil)
+func SkipListWithIntKeys(maxLevel int, p float64) *SkipList[Int] {
+	header := NewNode[Int](maxLevel+1, -math.MaxInt64, nil)
 	NIL := NewNode[Int](0, math.MaxInt64, nil)
 	for i := 0; i < maxLevel; i++ {
 		header.forward[i] = NIL
 	}
 
 	return &SkipList[Int]{
-		maxLevel: maxLevel - 1,
+		maxLevel: maxLevel,
 		level:    0,
 		p:        p,
 		size:     0,
@@ -81,8 +81,8 @@ func NewIntSkipList(maxLevel int, p float64) *SkipList[Int] {
 
 func (sl *SkipList[K]) Insert(searchKey K, val any) {
 	sl.m.Lock()
-	update := make([]*SLNode[K], sl.maxLevel)
-	x := sl.header
+
+	update, x := make([]*SLNode[K], sl.maxLevel), sl.header
 	for i := sl.level; i >= 0; i-- {
 		for sl.less(x.forward[i].Key, searchKey) {
 			x = x.forward[i]
@@ -107,6 +107,7 @@ func (sl *SkipList[K]) Insert(searchKey K, val any) {
 			update[i].forward[i] = x
 		}
 	}
+
 	sl.m.Unlock()
 }
 
