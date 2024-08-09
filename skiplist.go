@@ -65,7 +65,7 @@ func (sl *SkipList[K, V]) MaxLevel() int {
 
 // Level returns the current highest level of the list
 func (sl *SkipList[K, V]) Level() int {
-	return sl.maxLevel
+	return sl.level
 }
 
 // P returns the chance that a node is inserted into a higher level
