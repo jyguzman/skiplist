@@ -1,20 +1,41 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
+
+type Person struct {
+	name string
+}
+
+func (p Person) Cmp(p2 Comparable) int {
+	other := p2.(Person)
+	if p.name < other.name {
+		return -1
+	}
+	if p.name > other.name {
+		return 1
+	}
+	return 0
+}
 
 func main() {
-	sl := SkipListWithIntKeys(15, 0.5)
-	sl.Insert(10, "hello")
-	sl.Insert(20, "world")
-	sl.Insert(5, "before")
-	sl.Insert(30, "thirty")
-	fmt.Println(sl.Search(10))
-	fmt.Println(sl.Search(20))
-	fmt.Println(sl.Search(30))
-	fmt.Println(sl.String())
-	//sl.Delete(10)
-	//fmt.Println(sl.Search(10))
-	//sl.Insert(20, "beach")
-	//fmt.Println(sl.Search(20))
-	//fmt.Println(sl.Search(30))
+	sl := NewBasicSkipList[int, string](16, 0.5)
+	sl.Insert(0, "zero")
+	sl.Insert(1, "one")
+	sl.Insert(2, "two")
+	sl.Insert(4, "four")
+	sl.Insert(10, "ten")
+	sl.Insert(-10, "negTen")
+	sl.Insert(15, "fifteen")
+	sl.Insert(-2, "fifteen")
+	fmt.Println(sl.Range(-10, 4, false, false))
+
+	//slCustom := NewCustomSkipList[Person, int](16, 0.5)
+	//slCustom.Insert(Person{"jordie"}, 26)
+	//slCustom.Insert(Person{"mary"}, 52)
+	//fmt.Println(slCustom.Search(Person{name: "mary"}))
+
+	//slF := NewSkipList[Person, int](16, 0.5, Compare[Person])
+
 }

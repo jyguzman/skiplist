@@ -1,47 +1,13 @@
 package main
 
-import "math"
+// Compare a comparator function for a user-defined Comparable type that
+// returns 1 if a > b, 0 if a == b, or -1 if a < b
+func Compare[K Comparable](a, b K) int {
+	return a.Cmp(b)
+}
 
+// Comparable interface that user-defined key types should implement
 type Comparable interface {
-	CompareTo(other Comparable) int
-	Inf(int) Comparable
-}
-
-type Comp[T any] interface {
-}
-
-func (i Int) CompareTo(other Comparable) int {
-	otherInt := other.(Int)
-	if i > otherInt {
-		return 1
-	}
-	if i < otherInt {
-		return -1
-	}
-	return 0
-}
-
-func (i Int) Inf(sign int) Comparable {
-	if sign >= 0 {
-		return Int(math.MaxInt64)
-	}
-	return Int(-math.MaxInt64)
-}
-
-func (s String) CompareTo(other Comparable) int {
-	otherString := other.(String)
-	if s > otherString {
-		return 1
-	}
-	if s < otherString {
-		return -1
-	}
-	return 0
-}
-
-func (s String) Inf(sign int) Comparable {
-	if sign >= 0 {
-		return String("\xff\xff\xff\xff")
-	}
-	return String("")
+	// Cmp a comparator function that should return 1 if a > b, 0 if a == b, or -1 if a < b
+	Cmp(Comparable) int
 }

@@ -2,25 +2,45 @@ package main
 
 import "fmt"
 
-type SLItem[K Comparable] struct {
+// SLItem a key-value pair in the skip list
+type SLItem[K, V any] struct {
 	Key K
-	Val any
+	Val V
 }
 
-type SLNode[K Comparable] struct {
-	Key     K
-	Val     any
-	forward []*SLNode[K]
+// SLNode a node in the skip list that contains a key, value, and list of forward pointers
+type SLNode[K, V any] struct {
+	key     K
+	val     V
+	forward []*SLNode[K, V]
 }
 
-func (sn SLNode[K]) String() string {
-	return fmt.Sprintf("{key: %v, val: %v}", sn.Key, sn.Val)
+// Level return the highest level this node is in
+func (sn SLNode[K, V]) Level() int {
+	return len(sn.forward) - 1
 }
 
-func (sn SLNode[K]) Item() SLItem[K] {
-	return SLItem[K]{sn.Key, sn.Val}
+func (sn SLNode[K, V]) String() string {
+	return fmt.Sprintf("{key: %v, val: %v}", sn.key, sn.val)
 }
 
-func NewNode[K Comparable](level int, key K, val any) *SLNode[K] {
-	return &SLNode[K]{key, val, make([]*SLNode[K], level+1)}
+// Item returns the key-value pair from this node
+func (sn SLNode[K, V]) Item() SLItem[K, V] {
+	return SLItem[K, V]{sn.key, sn.val}
+}
+
+func newHeader[K, V any](maxLevel int) *SLNode[K, V] {
+	header := &SLNode[K, V]{forward: make([]*SLNode[K, V], maxLevel)}
+	for i := 0; i < maxLevel; i++ {
+		header.forward[i] = nil
+	}
+	return header
+}
+
+func newNode[K, V any](level int, key K, val V) *SLNode[K, V] {
+	return &SLNode[K, V]{
+		key:     key,
+		val:     val,
+		forward: make([]*SLNode[K, V], level+1),
+	}
 }
