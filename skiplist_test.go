@@ -14,4 +14,13 @@ func TestIntSkipListInsert(t *testing.T) {
 	if sl.Search(1) != "bye, world" {
 		t.Error("Updating existing key failed")
 	}
+
+	sl.Insert(0, "beefcafe")
+	sl.Insert(2, "sushibar")
+	sl.Insert(3, "porkclub")
+	//levelZero := sl.header.forward[0]
+	//firstThree
+	//for i := 0; i < len(levelZero.forward) && levelZero.forward[i] != nil {
+	//
+	//}
 }
