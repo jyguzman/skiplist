@@ -2,6 +2,7 @@ package main
 
 import (
 	"cmp"
+	"fmt"
 	"math/rand"
 	"sync"
 )
@@ -73,15 +74,6 @@ func (sl *SkipList[K, V]) P() float64 {
 	return sl.p
 }
 
-// randomLevel returns the highest level a node will be assigned
-func (sl *SkipList[K, V]) randomLevel() int {
-	level := 0
-	for i := 0; i < sl.maxLevel && rand.Float64() < sl.p; i++ {
-		level++
-	}
-	return level
-}
-
 // Insert adds a given key & value to the skip list.
 func (sl *SkipList[K, V]) Insert(searchKey K, val V) {
 	sl.m.Lock()
@@ -140,7 +132,7 @@ func (sl *SkipList[K, V]) Delete(searchKey K) {
 		x = nil
 		sl.size--
 		for i := sl.level; i > 0 && sl.header.forward[sl.level] == nil; i-- {
-			sl.level = sl.level - 1
+			sl.level -= 1
 		}
 	}
 
@@ -202,13 +194,93 @@ func (sl *SkipList[K, V]) RangeInc(min K, max K) []SLItem[K, V] {
 	return sl.Range(min, max, true, true)
 }
 
-func (sl *SkipList[K, V]) Merge(other *SkipList[K, V]) {}
+// Merge combines this skip list with another and returns the result
+func (sl *SkipList[K, V]) Merge(other *SkipList[K, V]) *SkipList[K, V] {
+	result := NewSkipList[K, V](sl.maxLevel, sl.p, sl.compareFunc)
+	var smaller *SkipList[K, V]
+	if sl.size >= other.size {
+		smaller = other
+	} else {
+		smaller = sl
+	}
 
-// Split splits the skip list into two: a skip list containing items with key up to pivot,
-// and a skip list with items from the pivot
-func (sl *SkipList[K, V]) Split(pivot K) (*SkipList[K, V], *SkipList[K, V]) {
-	return nil, nil
+	fmt.Println(smaller)
+	return result
 }
+
+// Split removes all elements from this skip list with keys >= pivot and returns those elements
+// in a new list
+func (sl *SkipList[K, V]) Split(pivot K) *SkipList[K, V] {
+	sl.m.RLock()
+	update, x := make([]*SLNode[K, V], sl.maxLevel), sl.header
+
+	for i := sl.level; i >= 0; i-- {
+		for x.forward[i] != nil && sl.less(x.forward[i].key, pivot) {
+			x = x.forward[i]
+		}
+		update[i] = x
+	}
+	x = x.forward[0]
+	sl.m.RUnlock()
+
+	newListHeader, newListLvl, newListSize := newHeader[K, V](sl.maxLevel), 0, 0
+	for i := 0; i <= sl.level; i++ {
+		newListHeader.forward[i] = update[i].forward[i]
+		newListLvl = i
+		update[i].forward[i] = nil // cut link from original list
+	}
+
+	l2 := &SkipList[K, V]{
+		maxLevel:    sl.maxLevel,
+		level:       newListLvl,
+		p:           sl.p,
+		size:        newListSize,
+		compareFunc: sl.compareFunc,
+		header:      newListHeader,
+	}
+	sl.size -= l2.size
+	return l2
+}
+
+//// Split removes all elements from this skip list with keys >= pivot and returns those elements
+//// in a new list
+//func (sl *SkipList[K, V]) Split(pivot K) *SkipList[K, V] {
+//	sl.m.Lock()
+//	defer sl.m.Unlock()
+//
+//	l2 := NewSkipList[K, V](sl.maxLevel, sl.p, sl.compareFunc)
+//	update, x := make([]*SLNode[K, V], sl.maxLevel), sl.header
+//
+//	for i := sl.level; i >= 0; i-- {
+//		for x.forward[i] != nil && sl.less(x.forward[i].key, pivot) {
+//			x = x.forward[i]
+//		}
+//		update[i] = x
+//	}
+//	x = x.forward[0]
+//
+//	//if x != nil && sl.geq(x.key, pivot) {
+//	//	l2.Insert(x.key, x.val)
+//	//	for i := 0; i <= sl.level; i++ {
+//	//		if update[i].forward[i] != x {
+//	//			update[i].forward[i] = nil
+//	//			continue
+//	//		}
+//	//		y := update[i].forward[i]
+//	//		for y != nil {
+//	//			l2.Insert(y.key, y.val)
+//	//			y = y.forward[i]
+//	//		}
+//	//		update[i].forward[i] = nil
+//	//	}
+//	//	for i := sl.level; i > 0 && sl.header.forward[sl.level] == nil; i-- {
+//	//		sl.level -= 1
+//	//	}
+//	//
+//	//}
+//	sl.size -= l2.size
+//	return l2
+//}
 
 // Rank returns the number of elements with key equal to or less than the given key
 func (sl *SkipList[K, V]) Rank(key K) int {
@@ -234,22 +306,44 @@ func (sl *SkipList[K, V]) Predecessor(key K) SLItem[K, V] { return SLItem[K, V]{
 // LazyDelete marks a key for deletion but does not actually remove the element
 func (sl *SkipList[K, V]) LazyDelete(key K) {}
 
+// Clear clears all elements from skip list
+func (sl *SkipList[K, V]) Clear() {
+	sl.m.Lock()
+
+	sl.size = 0
+	sl.level = 0
+	sl.header = newHeader[K, V](sl.maxLevel)
+
+	sl.m.Unlock()
+}
+
 func (sl *SkipList[K, V]) String() string {
 	sl.m.RLock()
 
 	res := ""
 	for i := sl.level; i >= 0; i-- {
 		level := sl.header.forward[i]
-		res += level.String()
-		for i < len(level.forward) && level.forward[i] != nil {
-			res += " -> " + level.forward[i].String()
-			level = level.forward[i]
+		if level != nil {
+			res += level.String()
+			for i < len(level.forward) && level.forward[i] != nil {
+				res += " -> " + level.forward[i].String()
+				level = level.forward[i]
+			}
+			res += "\n"
 		}
-		res += "\n"
 	}
 
 	sl.m.RUnlock()
 	return res
+}
+
+// randomLevel returns the highest level a node will be assigned
+func (sl *SkipList[K, V]) randomLevel() int {
+	level := 0
+	for i := 0; i < sl.maxLevel && rand.Float64() < sl.p; i++ {
+		level++
+	}
+	return level
 }
 
 // less returns true if x < y

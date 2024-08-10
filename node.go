@@ -12,6 +12,7 @@ type SLItem[K, V any] struct {
 type SLNode[K, V any] struct {
 	key     K
 	val     V
+	width   int
 	forward []*SLNode[K, V]
 }
 
