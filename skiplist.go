@@ -204,6 +204,36 @@ func (sl *SkipList[K, V]) RangeInc(min K, max K) []SLItem[K, V] {
 
 func (sl *SkipList[K, V]) Merge(other *SkipList[K, V]) {}
 
+// Split splits the skip list into two: a skip list containing items with key up to pivot,
+// and a skip list with items from the pivot
+func (sl *SkipList[K, V]) Split(pivot K) (*SkipList[K, V], *SkipList[K, V]) {
+	return nil, nil
+}
+
+// Rank returns the number of elements with key equal to or less than the given key
+func (sl *SkipList[K, V]) Rank(key K) int {
+	return len(sl.RangeInc(sl.header.forward[0].key, key))
+}
+
+// Select returns the element with given rank
+func (sl *SkipList[K, V]) Select(rank int) *SLItem[K, V] {
+	if sl.size == 0 || sl.size > rank {
+		x := sl.header
+		for i := 1; i < rank; i++ {
+			x = x.forward[0]
+		}
+		return &SLItem[K, V]{x.key, x.val}
+	}
+	return nil
+}
+
+func (sl *SkipList[K, V]) Successor(key K) SLItem[K, V] { return SLItem[K, V]{} }
+
+func (sl *SkipList[K, V]) Predecessor(key K) SLItem[K, V] { return SLItem[K, V]{} }
+
+// LazyDelete marks a key for deletion but does not actually remove the element
+func (sl *SkipList[K, V]) LazyDelete(key K) {}
+
 func (sl *SkipList[K, V]) String() string {
 	sl.m.RLock()
 

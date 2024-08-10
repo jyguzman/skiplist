@@ -67,3 +67,21 @@ func TestSkipListRange(t *testing.T) {
 	}
 
 }
+
+func TestSkipListRank(t *testing.T) {
+	sl := main.NewBasicSkipList[int, string](16, 0.5)
+
+	sl.Insert(10, "ten")
+	sl.Insert(20, "twenty")
+	sl.Insert(40, "forty")
+	sl.Insert(50, "fifty")
+	sl.Insert(8, "eight")
+	sl.Insert(5, "five")
+	sl.Insert(30, "thirty")
+	sl.Insert(1, "hello, world")
+
+	res := sl.Rank(20)
+	if res != 5 {
+		t.Error("Rank failed: expected 5, got ", res)
+	}
+}
