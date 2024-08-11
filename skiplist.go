@@ -109,9 +109,9 @@ func (sl *SkipList[K, V]) Insert(key K, val V) {
 	x = x.forward[0]
 	if x != nil && sl.equal(x.key, key) {
 		x.val = val
+		x.markedDeleted = false
 	} else {
 		lvl := sl.randomLevel()
-		//lvl := rand.Intn(sl.maxLevel)
 		if lvl > sl.level {
 			for i := sl.level + 1; i <= lvl; i++ {
 				update[i] = sl.header
@@ -288,7 +288,7 @@ func (sl *SkipList[K, V]) Rank(key K) int {
 	sl.m.RLock()
 	defer sl.m.RUnlock()
 
-	if sl == nil || sl.size == 0 {
+	if sl.size == 0 {
 		return -1
 	}
 	return len(sl.RangeInc(sl.header.forward[0].key, key))
@@ -302,6 +302,7 @@ func (sl *SkipList[K, V]) Select(rank int) *SLItem[K, V] {
 	if sl.size == 0 || sl.size > rank {
 		return nil
 	}
+
 	x := sl.header
 	pos := 0
 	for i := sl.level; i >= 0; i-- {
@@ -358,19 +359,19 @@ func (sl *SkipList[K, V]) Iterator() Iterator[K, V] {
 }
 
 // LazyDelete marks a key for deletion but does not actually remove the element. It is treated as
-// deleted, i.e. a search for this key will return nil
-func (sl *SkipList[K, V]) LazyDelete(key K) {
-	x := sl.header
-	for i := sl.level; i >= 0; i-- {
-		for x.forward[i] != nil && sl.less(x.forward[i].key, key) {
-			x = x.forward[i]
-		}
-	}
-	x = x.forward[0]
-	if x != nil {
-		x.markedDeleted = true
-	}
-}
+// deleted, i.e. searches for this key will return nil, and it will be skipped in queries
+//func (sl *SkipList[K, V]) LazyDelete(key K) {
+//	x := sl.header
+//	for i := sl.level; i >= 0; i-- {
+//		for x.forward[i] != nil && sl.less(x.forward[i].key, key) {
+//			x = x.forward[i]
+//		}
+//	}
+//	x = x.forward[0]
+//	if x != nil {
+//		x.markedDeleted = true
+//	}
+//}
 
 // Clear removes all elements from the skip list
 func (sl *SkipList[K, V]) Clear() {

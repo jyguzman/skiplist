@@ -32,7 +32,6 @@ func main() {
 	sl.Insert(40, "forty")
 	sl.Insert(-2, "negTwo")
 	fmt.Println(sl.Search(2))
-	sl.LazyDelete(2)
 	fmt.Println(sl.Search(2))
 	//it := sl.Iterator()
 	//fmt.Println(it.Next())
