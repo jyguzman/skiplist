@@ -124,6 +124,7 @@ func (sl *SkipList[K, V]) Insert(key K, val V) {
 		if sl.max == nil || sl.greater(key, sl.max.Key) {
 			sl.max = x.Item()
 		}
+
 		sl.size++
 	}
 
@@ -304,6 +305,7 @@ func (sl *SkipList[K, V]) Select(rank int) *SLItem[K, V] {
 	return x.Item()
 }
 
+// Successor returns the next item in sorted order from the element with given key
 func (sl *SkipList[K, V]) Successor(key K) *SLItem[K, V] {
 	sl.m.RLock()
 	defer sl.m.RUnlock()
@@ -315,12 +317,16 @@ func (sl *SkipList[K, V]) Successor(key K) *SLItem[K, V] {
 		}
 	}
 	x = x.forward[0]
-	if x != nil && x.forward[0] != nil {
-		return x.forward[0].Item()
+	if x != nil {
+		if sl.equal(x.key, key) && x.forward[0] != nil {
+			return x.forward[0].Item()
+		}
+		return x.Item()
 	}
 	return nil
 }
 
+// Predecessor returns the previous item in sorted order from the element with given key
 func (sl *SkipList[K, V]) Predecessor(key K) *SLItem[K, V] {
 	sl.m.RLock()
 	defer sl.m.RUnlock()
@@ -342,7 +348,7 @@ func (sl *SkipList[K, V]) Predecessor(key K) *SLItem[K, V] {
 // LazyDelete marks a key for deletion but does not actually remove the element
 func (sl *SkipList[K, V]) LazyDelete(key K) {}
 
-// Clear clears all elements from skip list
+// Clear removes all elements from the skip list
 func (sl *SkipList[K, V]) Clear() {
 	sl.m.Lock()
 
