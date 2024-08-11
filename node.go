@@ -8,6 +8,10 @@ type SLItem[K, V any] struct {
 	Val V
 }
 
+func NewItem[K, V any](key K, val V) SLItem[K, V] {
+	return SLItem[K, V]{Key: key, Val: val}
+}
+
 // SLNode a node in the skip list that contains a key, value, and list of forward pointers
 type SLNode[K, V any] struct {
 	key      K

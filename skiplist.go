@@ -9,16 +9,16 @@ import (
 
 type SkipList[K, V any] struct {
 	m           sync.RWMutex
-	maxLevel    int
-	level       int
-	p           float64
-	size        int
-	compareFunc func(K, K) int
-	header      *SLNode[K, V]
-	max         *SLItem[K, V]
+	maxLevel    int            // the maximum number of levels a node can appear on
+	level       int            // the current highest level
+	p           float64        // the chance from 0 to 1 that a node can appear at higher levels
+	size        int            // the current number of elements
+	compareFunc func(K, K) int // function used to compare keys
+	header      *SLNode[K, V]  // the header node
+	max         *SLItem[K, V]  // the element with the maximum key
 }
 
-// NewOrderedKeySkipList initializes a skip list using an ordered primitive key type with a given maxLevel and p.
+// NewOrderedKeySkipList initializes a skip list using a cmp.Ordered key type with a given maxLevel and p.
 func NewOrderedKeySkipList[K cmp.Ordered, V any](maxLevel int, p float64) *SkipList[K, V] {
 	return &SkipList[K, V]{
 		maxLevel:    maxLevel - 1,
@@ -30,7 +30,8 @@ func NewOrderedKeySkipList[K cmp.Ordered, V any](maxLevel int, p float64) *SkipL
 	}
 }
 
-// NewCustomKeySkipList initializes a skip list using a custom key type with a given maxLevel and p.
+// NewCustomKeySkipList initializes a skip list using a custom key type that must implement Comparable
+// and with a given maxLevel and p.
 func NewCustomKeySkipList[K Comparable, V any](maxLevel int, p float64) *SkipList[K, V] {
 	return &SkipList[K, V]{
 		maxLevel:    maxLevel - 1,
@@ -75,6 +76,7 @@ func (sl *SkipList[K, V]) P() float64 {
 	return sl.p
 }
 
+// Min returns the element with the minimum key
 func (sl *SkipList[K, V]) Min() *SLItem[K, V] {
 	if sl.size == 0 {
 		return nil
@@ -82,6 +84,7 @@ func (sl *SkipList[K, V]) Min() *SLItem[K, V] {
 	return sl.header.forward[0].Item()
 }
 
+// Max returns the element with the maximum key
 func (sl *SkipList[K, V]) Max() *SLItem[K, V] {
 	if sl.size == 0 {
 		return nil
@@ -95,7 +98,7 @@ func (sl *SkipList[K, V]) Insert(key K, val V) {
 	update := make([]*SLNode[K, V], sl.maxLevel)
 	x := sl.header
 	for i := sl.level; i >= 0; i-- {
-		for x.forward[i] != nil && sl.leq(x.forward[i].key, key) {
+		for x.forward[i] != nil && sl.less(x.forward[i].key, key) {
 			x = x.forward[i]
 		}
 		update[i] = x
@@ -108,6 +111,7 @@ func (sl *SkipList[K, V]) Insert(key K, val V) {
 		x.val = val
 	} else {
 		lvl := sl.randomLevel()
+		//lvl := rand.Intn(sl.maxLevel)
 		if lvl > sl.level {
 			for i := sl.level + 1; i <= lvl; i++ {
 				update[i] = sl.header
@@ -130,6 +134,9 @@ func (sl *SkipList[K, V]) Insert(key K, val V) {
 
 	sl.m.Unlock()
 }
+
+// InsertAll bulk inserts an array of key-value pairs
+func (sl *SkipList[K, V]) InsertAll([]SLItem[K, V]) {}
 
 // Delete removes a given key & value from the skip list.
 func (sl *SkipList[K, V]) Delete(key K) {
@@ -344,6 +351,9 @@ func (sl *SkipList[K, V]) Predecessor(key K) *SLItem[K, V] {
 	}
 	return previous[0].Item()
 }
+
+// Iterator returns a snapshot iterator over the skip list
+func (sl *SkipList[K, V]) Iterator() {}
 
 // LazyDelete marks a key for deletion but does not actually remove the element
 func (sl *SkipList[K, V]) LazyDelete(key K) {}
