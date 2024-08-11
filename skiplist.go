@@ -15,6 +15,7 @@ type SkipList[K, V any] struct {
 	size        int
 	compareFunc func(K, K) int
 	header      *SLNode[K, V]
+	max         *SLItem[K, V]
 }
 
 // NewOrderedKeySkipList initializes a skip list using an ordered primitive key type with a given maxLevel and p.
@@ -81,21 +82,29 @@ func (sl *SkipList[K, V]) Min() *SLItem[K, V] {
 	return sl.header.forward[0].Item()
 }
 
-// Insert adds a given key & value to the skip list.
-func (sl *SkipList[K, V]) Insert(searchKey K, val V) {
-	sl.m.Lock()
+func (sl *SkipList[K, V]) Max() *SLItem[K, V] {
+	if sl.size == 0 {
+		return nil
+	}
+	return sl.max
+}
 
+// Insert adds a given key & value to the skip list.
+func (sl *SkipList[K, V]) Insert(key K, val V) {
+	sl.m.RLock()
 	update := make([]*SLNode[K, V], sl.maxLevel)
 	x := sl.header
 	for i := sl.level; i >= 0; i-- {
-		for x.forward[i] != nil && sl.leq(x.forward[i].key, searchKey) {
+		for x.forward[i] != nil && sl.leq(x.forward[i].key, key) {
 			x = x.forward[i]
 		}
 		update[i] = x
 	}
+	sl.m.RUnlock()
 
+	sl.m.Lock()
 	x = x.forward[0]
-	if x != nil && sl.equal(x.key, searchKey) {
+	if x != nil && sl.equal(x.key, key) {
 		x.val = val
 	} else {
 		lvl := sl.randomLevel()
@@ -106,12 +115,15 @@ func (sl *SkipList[K, V]) Insert(searchKey K, val V) {
 			sl.level = lvl
 		}
 
-		x = newNode[K](lvl, searchKey, val)
+		x = newNode[K](lvl, key, val)
 		for i := 0; i <= lvl; i++ {
 			x.forward[i] = update[i].forward[i]
 			update[i].forward[i] = x
 		}
 
+		if sl.max == nil || sl.greater(key, sl.max.Key) {
+			sl.max = x.Item()
+		}
 		sl.size++
 	}
 
@@ -119,18 +131,23 @@ func (sl *SkipList[K, V]) Insert(searchKey K, val V) {
 }
 
 // Delete removes a given key & value from the skip list.
-func (sl *SkipList[K, V]) Delete(searchKey K) {
-	sl.m.Lock()
-
+func (sl *SkipList[K, V]) Delete(key K) {
+	sl.m.RLock()
 	update, x := make([]*SLNode[K, V], sl.maxLevel), sl.header
 	for i := sl.level; i >= 0; i-- {
-		for x.forward[i] != nil && sl.less(x.forward[i].key, searchKey) {
+		for x.forward[i] != nil && sl.less(x.forward[i].key, key) {
 			x = x.forward[i]
 		}
 		update[i] = x
 	}
+	sl.m.RUnlock()
+
+	sl.m.Lock()
 	x = x.forward[0]
-	if x != nil && sl.equal(x.key, searchKey) {
+	if x != nil && sl.equal(x.key, key) {
+		if sl.equal(x.key, sl.max.Key) {
+			sl.max = update[0].Item()
+		}
 		for i := 0; i <= sl.level; i++ {
 			if update[i].forward[i] != x {
 				break
@@ -143,24 +160,23 @@ func (sl *SkipList[K, V]) Delete(searchKey K) {
 			sl.level -= 1
 		}
 	}
-
 	sl.m.Unlock()
 }
 
 // Search returns a value given by the key if it exists and a bool indicating if it exists
-func (sl *SkipList[K, V]) Search(searchKey K) (V, bool) {
+func (sl *SkipList[K, V]) Search(key K) (V, bool) {
 	sl.m.RLock()
 	defer sl.m.RUnlock()
 
 	x := sl.header
 	for i := sl.level; i >= 0; i-- {
-		for x.forward[i] != nil && sl.less(x.forward[i].key, searchKey) {
+		for x.forward[i] != nil && sl.less(x.forward[i].key, key) {
 			x = x.forward[i]
 		}
 	}
 	x = x.forward[0]
 	var val V
-	if x != nil && sl.equal(x.key, searchKey) {
+	if x != nil && sl.equal(x.key, key) {
 		val = x.val
 		return val, true
 	}
@@ -247,8 +263,7 @@ func (sl *SkipList[K, V]) Split(pivot K) *SkipList[K, V] {
 		header:      newListHeader,
 	}
 
-	l2Size := 0
-	x = l2.header
+	l2Size, x := 0, l2.header
 	for x.forward[0] != nil {
 		l2Size += 1
 		x = x.forward[0]
@@ -262,6 +277,9 @@ func (sl *SkipList[K, V]) Split(pivot K) *SkipList[K, V] {
 // Rank returns the number of elements with key equal to or less than the given key, or - 1
 // if the list is empty
 func (sl *SkipList[K, V]) Rank(key K) int {
+	sl.m.RLock()
+	defer sl.m.RUnlock()
+
 	if sl == nil || sl.size == 0 {
 		return -1
 	}
@@ -270,6 +288,9 @@ func (sl *SkipList[K, V]) Rank(key K) int {
 
 // Select returns the element with given rank
 func (sl *SkipList[K, V]) Select(rank int) *SLItem[K, V] {
+	sl.m.RLock()
+	defer sl.m.RUnlock()
+
 	if sl.size == 0 || sl.size > rank {
 		return nil
 	}
@@ -284,6 +305,9 @@ func (sl *SkipList[K, V]) Select(rank int) *SLItem[K, V] {
 }
 
 func (sl *SkipList[K, V]) Successor(key K) *SLItem[K, V] {
+	sl.m.RLock()
+	defer sl.m.RUnlock()
+
 	x := sl.header
 	for i := sl.level; i >= 0; i-- {
 		for x.forward[i] != nil && sl.less(x.forward[i].key, key) {
@@ -298,6 +322,9 @@ func (sl *SkipList[K, V]) Successor(key K) *SLItem[K, V] {
 }
 
 func (sl *SkipList[K, V]) Predecessor(key K) *SLItem[K, V] {
+	sl.m.RLock()
+	defer sl.m.RUnlock()
+
 	x := sl.header
 	previous := make([]*SLNode[K, V], sl.maxLevel+1)
 	for i := sl.level; i >= 0; i-- {
