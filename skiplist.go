@@ -353,9 +353,12 @@ func (sl *SkipList[K, V]) Predecessor(key K) *SLItem[K, V] {
 }
 
 // Iterator returns a snapshot iterator over the skip list
-func (sl *SkipList[K, V]) Iterator() {}
+func (sl *SkipList[K, V]) Iterator() Iterator[K, V] {
+	return Iterator[K, V]{curr: sl.header.forward[0]}
+}
 
-// LazyDelete marks a key for deletion but does not actually remove the element
+// LazyDelete marks a key for deletion but does not actually remove the element. It is treated as
+// deleted, e.g. a search for this key will return nil
 func (sl *SkipList[K, V]) LazyDelete(key K) {}
 
 // Clear removes all elements from the skip list
