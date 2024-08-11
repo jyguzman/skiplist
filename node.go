@@ -10,10 +10,10 @@ type SLItem[K, V any] struct {
 
 // SLNode a node in the skip list that contains a key, value, and list of forward pointers
 type SLNode[K, V any] struct {
-	key     K
-	val     V
-	width   int
-	forward []*SLNode[K, V]
+	key      K
+	val      V
+	isHeader bool
+	forward  []*SLNode[K, V]
 }
 
 // Level return the highest level this node is in
@@ -26,12 +26,12 @@ func (sn SLNode[K, V]) String() string {
 }
 
 // Item returns the key-value pair from this node
-func (sn SLNode[K, V]) Item() SLItem[K, V] {
-	return SLItem[K, V]{sn.key, sn.val}
+func (sn SLNode[K, V]) Item() *SLItem[K, V] {
+	return &SLItem[K, V]{sn.key, sn.val}
 }
 
 func newHeader[K, V any](maxLevel int) *SLNode[K, V] {
-	header := &SLNode[K, V]{forward: make([]*SLNode[K, V], maxLevel)}
+	header := &SLNode[K, V]{isHeader: true, forward: make([]*SLNode[K, V], maxLevel)}
 	for i := 0; i < maxLevel; i++ {
 		header.forward[i] = nil
 	}
