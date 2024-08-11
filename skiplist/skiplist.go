@@ -429,6 +429,7 @@ func (sl *SkipList[K, V]) LazyDelete(key K) {
 func (sl *SkipList[K, V]) Clean() {
 	sl.m.Lock()
 	for _, t := range sl.tombstones {
+		// there may have been an insert for this key, so check to see it's still marked deleted
 		if t.markedDeleted {
 			sl.delete(t.key)
 		}

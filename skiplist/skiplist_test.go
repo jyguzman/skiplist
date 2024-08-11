@@ -23,11 +23,6 @@ func TestSkipListInsert(t *testing.T) {
 	sl.Insert(0, "beefcafe")
 	sl.Insert(2, "sushibar")
 	sl.Insert(3, "porkclub")
-	//levelZero := sl.header.forward[0]
-	//firstThree
-	//for i := 0; i < len(levelZero.forward) && levelZero.forward[i] != nil {
-	//
-	//}
 }
 
 func TestSkipList_Delete(t *testing.T) {
@@ -42,7 +37,7 @@ func TestSkipList_Delete(t *testing.T) {
 	}
 }
 
-func TestSkipList_LazyDelete(t *testing.T) {
+func TestSkipList_LazyDelete_Search(t *testing.T) {
 	sl := NewOrderedKeySkipList[int, string](16, 0.5)
 
 	sl.Insert(1, "hello, world")
@@ -52,6 +47,18 @@ func TestSkipList_LazyDelete(t *testing.T) {
 	if ok {
 		t.Error("Lazy deletion failed")
 	}
+}
+
+func TestSkipList_LazyDelete_Range(t *testing.T) {
+
+}
+
+func TestSkipList_LazyDelete_SuccessorPredecessor(t *testing.T) {
+
+}
+
+func TestSkipList_LazyDelete_Iterator(t *testing.T) {
+
 }
 
 func TestSkipListRange(t *testing.T) {
