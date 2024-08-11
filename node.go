@@ -14,10 +14,11 @@ func NewItem[K, V any](key K, val V) SLItem[K, V] {
 
 // SLNode a node in the skip list that contains a key, value, and list of forward pointers
 type SLNode[K, V any] struct {
-	key      K
-	val      V
-	isHeader bool
-	forward  []*SLNode[K, V]
+	key           K
+	val           V
+	isHeader      bool
+	markedDeleted bool
+	forward       []*SLNode[K, V]
 }
 
 // Level return the highest level this node is in

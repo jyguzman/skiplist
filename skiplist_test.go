@@ -30,7 +30,7 @@ func TestSkipListInsert(t *testing.T) {
 	//}
 }
 
-func TestSkipListDelete(t *testing.T) {
+func TestSkipList_Delete(t *testing.T) {
 	sl := NewOrderedKeySkipList[int, string](16, 0.5)
 
 	sl.Insert(1, "hello, world")
@@ -39,6 +39,18 @@ func TestSkipListDelete(t *testing.T) {
 	_, ok := sl.Search(1)
 	if ok {
 		t.Error("Deletion failed")
+	}
+}
+
+func TestSkipList_LazyDelete(t *testing.T) {
+	sl := NewOrderedKeySkipList[int, string](16, 0.5)
+
+	sl.Insert(1, "hello, world")
+	sl.LazyDelete(1)
+
+	_, ok := sl.Search(1)
+	if ok {
+		t.Error("Lazy deletion failed")
 	}
 }
 

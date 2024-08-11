@@ -184,7 +184,7 @@ func (sl *SkipList[K, V]) Search(key K) (V, bool) {
 	}
 	x = x.forward[0]
 	var val V
-	if x != nil && sl.equal(x.key, key) {
+	if x != nil && sl.equal(x.key, key) && !x.markedDeleted {
 		val = x.val
 		return val, true
 	}
@@ -358,8 +358,19 @@ func (sl *SkipList[K, V]) Iterator() Iterator[K, V] {
 }
 
 // LazyDelete marks a key for deletion but does not actually remove the element. It is treated as
-// deleted, e.g. a search for this key will return nil
-func (sl *SkipList[K, V]) LazyDelete(key K) {}
+// deleted, i.e. a search for this key will return nil
+func (sl *SkipList[K, V]) LazyDelete(key K) {
+	x := sl.header
+	for i := sl.level; i >= 0; i-- {
+		for x.forward[i] != nil && sl.less(x.forward[i].key, key) {
+			x = x.forward[i]
+		}
+	}
+	x = x.forward[0]
+	if x != nil {
+		x.markedDeleted = true
+	}
+}
 
 // Clear removes all elements from the skip list
 func (sl *SkipList[K, V]) Clear() {
