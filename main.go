@@ -1,12 +1,15 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"skiplist/skiplist"
+)
 
 type Person struct {
 	name string
 }
 
-func (p Person) Cmp(p2 Comparable) int {
+func (p Person) Cmp(p2 skiplist.Comparable) int {
 	other := p2.(Person)
 	if p.name < other.name {
 		return -1
@@ -18,7 +21,7 @@ func (p Person) Cmp(p2 Comparable) int {
 }
 
 func main() {
-	sl := NewOrderedKeySkipList[int, string](16, 0.5)
+	sl := skiplist.NewOrderedKeySkipList[int, string](16, 0.5)
 	sl.Insert(0, "zero")
 	sl.Insert(1, "one")
 	sl.Insert(2, "two")
@@ -31,8 +34,9 @@ func main() {
 	sl.Insert(20, "twenty")
 	sl.Insert(40, "forty")
 	sl.Insert(-2, "negTwo")
-	fmt.Println(sl.Search(2))
-	fmt.Println(sl.Search(2))
+	fmt.Println(sl.Max())
+	sl.LazyDelete(40)
+	fmt.Println(sl.Max())
 	//it := sl.Iterator()
 	//fmt.Println(it.Next())
 	//fmt.Println(it.Next())

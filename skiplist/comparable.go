@@ -1,4 +1,4 @@
-package main
+package skiplist
 
 // Compare a comparator function for a user-defined Comparable type that
 // returns 1 if a > b, 0 if a == b, or -1 if a < b

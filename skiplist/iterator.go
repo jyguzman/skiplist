@@ -1,4 +1,4 @@
-package main
+package skiplist
 
 type Iterator[K, V any] struct {
 	curr *SLNode[K, V]
