@@ -1,28 +1,28 @@
 package skiplist
 
 type Iterator[K, V any] struct {
-	curr *SLNode[K, V]
+	next *SLNode[K, V]
 }
 
 func (it *Iterator[K, V]) skipTombstones() {
-	for it.curr != nil && it.curr.markedDeleted {
-		it.curr = it.curr.forward[0]
+	for it.next != nil && it.next.markedDeleted {
+		it.next = it.next.forward[0]
 	}
 }
 
 func (it *Iterator[K, V]) Next() *SLItem[K, V] {
 	it.skipTombstones()
-	if it.curr == nil {
+	if it.next == nil {
 		return nil
 	}
-	res := it.curr.Item()
+	res := it.next.Item()
 	it.skipTombstones()
-	if it.curr != nil {
-		it.curr = it.curr.forward[0]
+	if it.next != nil {
+		it.next = it.next.forward[0]
 	}
 	return res
 }
 
 func (it *Iterator[K, V]) HasNext() bool {
-	return it.curr != nil
+	return it.next != nil
 }

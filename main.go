@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"skiplist/skiplist"
 )
 
@@ -21,22 +20,26 @@ func (p Person) Cmp(p2 skiplist.Comparable) int {
 }
 
 func main() {
-	sl := skiplist.NewOrderedKeySkipList[int, string](16, 0.5)
-	sl.Insert(0, "zero")
-	sl.Insert(1, "one")
-	sl.Insert(2, "two")
-	sl.Insert(3, "three")
-	sl.Insert(4, "four")
-	sl.Insert(5, "five")
-	sl.Insert(10, "ten")
-	sl.Insert(-10, "negTen")
-	sl.Insert(15, "fifteen")
-	sl.Insert(20, "twenty")
-	sl.Insert(40, "forty")
-	sl.Insert(-2, "negTwo")
-	fmt.Println(sl.Max())
-	sl.LazyDelete(40)
-	fmt.Println(sl.Max())
+	//sl := skiplist.NewOrderedKeySkipList[int, string](16, 0.5)
+	//sl.Insert(0, "zero")
+	//sl.Insert(1, "one")
+	//sl.Insert(2, "two")
+	//sl.Insert(3, "three")
+	//sl.Insert(4, "four")
+	//sl.Insert(5, "five")
+	//sl.Insert(10, "ten")
+	//sl.Insert(-10, "negTen")
+	//sl.Insert(15, "fifteen")
+	//sl.Insert(20, "twenty")
+	//sl.Insert(40, "forty")
+	//sl.Insert(-2, "negTwo")
+	//fmt.Println(sl.Max())
+	//sl.LazyDelete(40)
+	//fmt.Println(sl.Max())
+	//items := []skiplist.SLItem[int, string]{
+	//	skiplist.NewItem(0, "hello"),
+	//}
+	//fmt.Println(items)
 	//it := sl.Iterator()
 	//fmt.Println(it.Next())
 	//fmt.Println(it.Next())
