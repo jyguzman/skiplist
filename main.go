@@ -1,31 +1,18 @@
 package main
 
 import (
-	"skiplist/skiplist"
+	"fmt"
+	"github.com/jyguzman/skiplist/skiplist"
 )
 
-type Person struct {
-	name string
-}
-
-func (p Person) Cmp(p2 skiplist.Comparable) int {
-	other := p2.(Person)
-	if p.name < other.name {
-		return -1
-	}
-	if p.name > other.name {
-		return 1
-	}
-	return 0
-}
-
 func main() {
-	//sl := skiplist.NewOrderedKeySkipList[int, string](16, 0.5)
-	//sl.Insert(0, "zero")
-	//sl.Insert(1, "one")
-	//sl.Insert(2, "two")
-	//sl.Insert(3, "three")
-	//sl.Insert(4, "four")
+	sl := skiplist.NewOrderedKeySkipList[int, string](16, 0.5)
+	sl.Insert(0, "zero")
+	sl.Insert(1, "one")
+	sl.Insert(2, "two")
+	sl.Insert(3, "three")
+	sl.Insert(4, "four")
+	fmt.Println(sl.Search(4))
 	//sl.Insert(5, "five")
 	//sl.Insert(10, "ten")
 	//sl.Insert(-10, "negTen")
