@@ -80,6 +80,11 @@ func (sl *SkipList[K, V]) Size() int {
 	return sl.size
 }
 
+// IsEmpty returns true if the skip list has no elements
+func (sl *SkipList[K, V]) IsEmpty() bool {
+	return sl.Size() == 0
+}
+
 // MaxLevel returns the maximum numbers of forward pointers a node can have
 func (sl *SkipList[K, V]) MaxLevel() int {
 	return sl.maxLevel
@@ -216,36 +221,17 @@ func (sl *SkipList[K, V]) Search(key K) (V, bool) {
 	return val, false
 }
 
-// Range returns a list of key-pairs sorted from a minimum key to a maximum key.
-func (sl *SkipList[K, V]) Range(min K, max K, leftInclusive bool, rightInclusive bool) []*SLItem[K, V] {
+// Range returns a list of elements sorted from a minimum key to a maximum key.
+func (sl *SkipList[K, V]) Range(min K, max K) []*SLItem[K, V] {
 	sl.m.RLock()
+	defer sl.m.RUnlock()
 
 	_, x := sl.searchNode(min)
 	x = x.forward[0]
-	var result []*SLItem[K, V]
 	if x != nil && sl.geq(x.key, min) {
-		if leftInclusive && !x.markedDeleted && sl.equal(x.key, min) {
-			result = append(result, x.Item())
-		}
-		for x.forward[0] != nil && sl.less(x.forward[0].key, max) {
-			if !x.markedDeleted {
-				result = append(result, x.forward[0].Item())
-			}
-			x = x.forward[0]
-		}
-		x = x.forward[0]
-		if rightInclusive && x != nil && !x.markedDeleted && sl.equal(x.key, max) {
-			result = append(result, x.Item())
-		}
+		return sl.iterator(x).UpTo(max)
 	}
-
-	sl.m.RUnlock()
-	return result
-}
-
-// RangeInc Range inclusive of min and max
-func (sl *SkipList[K, V]) RangeInc(min K, max K) []*SLItem[K, V] {
-	return sl.Range(min, max, true, true)
+	return []*SLItem[K, V]{}
 }
 
 func merge[K, V any](sl1 *SkipList[K, V], sl2 *SkipList[K, V]) *SkipList[K, V] {
@@ -293,40 +279,20 @@ func (sl *SkipList[K, V]) Merge(other *SkipList[K, V]) {
 	//fmt.Println(p1, p2)
 }
 
-// Successor returns the next item in sorted order from the element with given key
-func (sl *SkipList[K, V]) Successor(key K) *SLItem[K, V] {
-	sl.m.RLock()
-	defer sl.m.RUnlock()
-
-	_, x := sl.searchNode(key)
-	x = x.forward[0]
-	if x != nil {
-		if sl.equal(x.key, key) && x.forward[0] != nil {
-			return x.forward[0].Item()
-		}
-		return x.Item()
-	}
-	return nil
-}
-
-// Predecessor returns the previous item in sorted order from the element with given key
-func (sl *SkipList[K, V]) Predecessor(key K) *SLItem[K, V] {
-	sl.m.RLock()
-	defer sl.m.RUnlock()
-
-	previous, _ := sl.searchNode(key)
-	if previous[0].isHeader {
-		return nil
-	}
-	return previous[0].Item()
-}
-
 // Iterator returns a snapshot iterator over the skip list
-func (sl *SkipList[K, V]) Iterator() Iterator[K, V] {
+func (sl *SkipList[K, V]) Iterator() *Iterator[K, V] {
 	sl.m.RLock()
 	defer sl.m.RUnlock()
 
-	return Iterator[K, V]{next: sl.header.forward[0]}
+	return &Iterator[K, V]{compareFunc: sl.compareFunc, curr: sl.header.forward[0]}
+}
+
+// ToArray returns a sorted array of all elements of the skip list
+func (sl *SkipList[K, V]) ToArray() []*SLItem[K, V] {
+	sl.m.RLock()
+	defer sl.m.RUnlock()
+
+	return sl.Iterator().All()
 }
 
 // LazyDelete marks a key as deleted but does not actually remove the element. It is treated as
@@ -450,15 +416,15 @@ func (sl *SkipList[K, V]) geq(x, y K) bool {
 }
 
 func (sl *SkipList[K, V]) searchNode(searchKey K) ([]*SLNode[K, V], *SLNode[K, V]) {
-	update := make([]*SLNode[K, V], sl.maxLevel)
+	previous := make([]*SLNode[K, V], sl.maxLevel)
 	x := sl.header
 	for i := sl.level; i >= 0; i-- {
 		for x.forward[i] != nil && sl.less(x.forward[i].key, searchKey) {
 			x = x.forward[i]
 		}
-		update[i] = x
+		previous[i] = x
 	}
-	return update, x
+	return previous, x
 }
 
 func (sl *SkipList[K, V]) isMin(sn *SLNode[K, V]) bool {
@@ -536,8 +502,12 @@ func (sl *SkipList[K, V]) delete(key K) {
 	}
 }
 
+func (sl *SkipList[K, V]) iterator(node *SLNode[K, V]) *Iterator[K, V] {
+	return &Iterator[K, V]{compareFunc: sl.compareFunc, curr: node}
+}
+
 func (sl *SkipList[K, V]) skipTombstones(node *SLNode[K, V]) {
-	for node.forward[0] != nil && node.forward[0] != nil {
+	for node.forward[0] != nil && node.forward[0].markedDeleted {
 		node = node.forward[0]
 	}
 }

@@ -1,28 +1,50 @@
 package skiplist
 
 type Iterator[K, V any] struct {
-	next *SLNode[K, V]
-}
-
-func (it *Iterator[K, V]) skipTombstones() {
-	for it.next != nil && it.next.markedDeleted {
-		it.next = it.next.forward[0]
-	}
+	compareFunc func(K, K) int
+	curr        *SLNode[K, V]
 }
 
 func (it *Iterator[K, V]) Next() *SLItem[K, V] {
-	it.skipTombstones()
-	if it.next == nil {
-		return nil
+	defer it.advance()
+	if it.HasNext() {
+		return it.curr.Item()
 	}
-	res := it.next.Item()
-	it.skipTombstones()
-	if it.next != nil {
-		it.next = it.next.forward[0]
-	}
-	return res
+	return nil
 }
 
 func (it *Iterator[K, V]) HasNext() bool {
-	return it.next != nil
+	return it.curr != nil
+}
+
+func (it *Iterator[K, V]) All() []*SLItem[K, V] {
+	var results []*SLItem[K, V]
+	for it.HasNext() {
+		results = append(results, it.curr.Item())
+		it.skipTombstones()
+	}
+	return results
+}
+
+func (it *Iterator[K, V]) advance() {
+	it.skipTombstones()
+	if it.curr != nil {
+		it.curr = it.curr.forward[0]
+	}
+	it.skipTombstones()
+}
+
+func (it *Iterator[K, V]) skipTombstones() {
+	for it.curr != nil && it.curr.markedDeleted {
+		it.curr = it.curr.forward[0]
+	}
+}
+
+func (it *Iterator[K, V]) UpTo(stop K) []*SLItem[K, V] {
+	var results []*SLItem[K, V]
+	for it.HasNext() && it.compareFunc(it.curr.key, stop) <= 0 {
+		results = append(results, it.curr.Item())
+		it.advance()
+	}
+	return results
 }

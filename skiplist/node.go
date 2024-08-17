@@ -11,6 +11,10 @@ type SLItem[K, V any] struct {
 	Val V
 }
 
+func (sn *SLItem[K, V]) String() string {
+	return fmt.Sprintf("Item{K: %v, V: %v}", sn.Key, sn.Val)
+}
+
 func NewItem[K, V any](key K, val V) SLItem[K, V] {
 	return SLItem[K, V]{Key: key, Val: val}
 }
