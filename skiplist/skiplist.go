@@ -222,24 +222,21 @@ func (sl *SkipList[K, V]) Search(key K) (V, bool) {
 }
 
 // Range returns a list of elements sorted from a minimum key to a maximum key.
-func (sl *SkipList[K, V]) Range(min K, max K) []*SLItem[K, V] {
+func (sl *SkipList[K, V]) Range(start, end K) []*SLItem[K, V] {
 	sl.m.RLock()
 	defer sl.m.RUnlock()
 
-	_, x := sl.searchNode(min)
-	x = x.forward[0]
-	if x != nil && sl.geq(x.key, min) {
-		return sl.iterator(x).UpTo(max)
+	_, startNode := sl.searchNode(start)
+	startNode = startNode.forward[0]
+	if startNode != nil && sl.geq(startNode.key, start) {
+		return sl.iterator(startNode).UpTo(end)
 	}
 	return []*SLItem[K, V]{}
 }
 
-func merge[K, V any](sl1 *SkipList[K, V], sl2 *SkipList[K, V]) *SkipList[K, V] {
+func merge[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 	sl1.m.Lock()
 	sl2.m.Lock()
-
-	defer sl1.m.Unlock()
-	defer sl2.m.Unlock()
 
 	sl1.maxLevel = sl2.maxLevel
 
@@ -249,21 +246,23 @@ func merge[K, V any](sl1 *SkipList[K, V], sl2 *SkipList[K, V]) *SkipList[K, V] {
 
 	}
 
+	sl1.m.Unlock()
+	sl2.m.Unlock()
+
 	return nil
 }
 
 // Merge combines this skip list with another
 func (sl *SkipList[K, V]) Merge(other *SkipList[K, V]) {
+	sl.m.Lock()
+	other.m.Lock()
 
-	//sl.m.Lock()
-	//other.m.Lock()
-	//
-	//defer sl.m.Unlock()
-	//defer other.m.Unlock()
-	//
+	defer sl.m.Unlock()
+	defer other.m.Unlock()
+
 	//p1, p2 := sl.header, other.header
 	//
-	//for p2.forward[0] != nil {
+	//for p1 != nil && p2 != nil {
 	//	key1, key2 := p1.key, p2.key
 	//	if sl.less(key1, key2) {
 	//
@@ -281,17 +280,11 @@ func (sl *SkipList[K, V]) Merge(other *SkipList[K, V]) {
 
 // Iterator returns a snapshot iterator over the skip list
 func (sl *SkipList[K, V]) Iterator() *Iterator[K, V] {
-	sl.m.RLock()
-	defer sl.m.RUnlock()
-
-	return &Iterator[K, V]{compareFunc: sl.compareFunc, curr: sl.header.forward[0]}
+	return sl.iterator(sl.header)
 }
 
 // ToArray returns a sorted array of all elements of the skip list
 func (sl *SkipList[K, V]) ToArray() []*SLItem[K, V] {
-	sl.m.RLock()
-	defer sl.m.RUnlock()
-
 	return sl.Iterator().All()
 }
 
@@ -503,6 +496,9 @@ func (sl *SkipList[K, V]) delete(key K) {
 }
 
 func (sl *SkipList[K, V]) iterator(node *SLNode[K, V]) *Iterator[K, V] {
+	sl.m.RLock()
+	defer sl.m.RUnlock()
+
 	return &Iterator[K, V]{compareFunc: sl.compareFunc, curr: node}
 }
 
