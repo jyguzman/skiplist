@@ -5,7 +5,6 @@ import (
 	"testing"
 )
 
-func AssertNotEqual(t *testing.T, a any, b any) {}
 func TestSkipListInsert(t *testing.T) {
 	sl := NewOrderedKeySkipList[int, string](16, 0.5)
 
@@ -160,10 +159,6 @@ func TestSkipList_LazyDelete_Range(t *testing.T) {
 
 }
 
-func TestSkipList_LazyDelete_Iterator(t *testing.T) {
-
-}
-
 func TestSkipListRange(t *testing.T) {
 	sl := NewOrderedKeySkipList[int, string](16, 0.5)
 
@@ -178,17 +173,12 @@ func TestSkipListRange(t *testing.T) {
 
 }
 
-func TestSkipListMinMax(t *testing.T) {
+func TestSkipList_Min(t *testing.T) {
 	sl := NewOrderedKeySkipList[int, string](16, 0.5)
 
 	res := sl.Min()
 	if res != nil {
 		t.Error("Min on empty skip list failed")
-	}
-
-	res = sl.Max()
-	if res != nil {
-		t.Error("Max on empty skip list failed")
 	}
 
 	sl.Insert(10, "ten")
@@ -205,19 +195,41 @@ func TestSkipListMinMax(t *testing.T) {
 		t.Error("Min failed")
 	}
 
-	res = sl.Max()
-	if res.Key != 50 {
-		t.Error("Max failed")
-	}
-
 	sl.Delete(1)
-	sl.Delete(50)
-
 	res = sl.Min()
 	if res.Key != 5 {
 		t.Error("Min after deleting previous min failed")
 	}
 
+	res = sl.Max()
+	if res.Key != 40 {
+		t.Error("Max after deleting previous max failed")
+	}
+}
+
+func TestSkipList_Max(t *testing.T) {
+	sl := NewOrderedKeySkipList[int, string](16, 0.5)
+
+	res := sl.Max()
+	if res != nil {
+		t.Error("Max on empty skip list failed")
+	}
+
+	sl.Insert(10, "ten")
+	sl.Insert(20, "twenty")
+	sl.Insert(40, "forty")
+	sl.Insert(50, "fifty")
+	sl.Insert(8, "eight")
+	sl.Insert(5, "five")
+	sl.Insert(30, "thirty")
+	sl.Insert(1, "hello, world")
+
+	res = sl.Max()
+	if res.Key != 50 {
+		t.Error("Max failed")
+	}
+
+	sl.Delete(50)
 	res = sl.Max()
 	if res.Key != 40 {
 		t.Error("Max after deleting previous max failed")

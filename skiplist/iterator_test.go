@@ -16,18 +16,23 @@ func TestIterator_Next(t *testing.T) {
 	}
 
 	sorted := []SLItem[int, string]{
-		{5, "hello, world"},
-		{2, "bar"},
-		{0, "foo"},
 		{-5, "beefcafe"},
+		{0, "foo"},
+		{2, "bar"},
+		{5, "hello, world"},
 	}
+
 	for _, item := range items {
 		sl.Insert(item.Key, item.Val)
 	}
 
 	it := sl.Iterator()
-	next := it.Next()
-	if next.
+	for i := range sorted {
+		next := it.Next()
+		if next.Key != sorted[i].Key || next.Val != sorted[i].Val {
+			t.Errorf("iterator next: got %v, want %v", next.Key, sorted[i].Key)
+		}
+	}
 }
 
 func TestIterator_All(t *testing.T) {
