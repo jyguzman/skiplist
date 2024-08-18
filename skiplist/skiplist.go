@@ -280,11 +280,11 @@ func (sl *SkipList[K, V]) Merge(other *SkipList[K, V]) {
 
 // Iterator returns a snapshot iterator over the skip list
 func (sl *SkipList[K, V]) Iterator() *Iterator[K, V] {
-	return sl.iterator(sl.header)
+	return sl.iterator(sl.header.forward[0])
 }
 
 // ToArray returns a sorted array of all elements of the skip list
-func (sl *SkipList[K, V]) ToArray() []*SLItem[K, V] {
+func (sl *SkipList[K, V]) ToArray() []SLItem[K, V] {
 	return sl.Iterator().All()
 }
 
@@ -299,6 +299,7 @@ func (sl *SkipList[K, V]) LazyDelete(key K) {
 	sl.m.Lock()
 	if x != nil {
 		x.markedDeleted = true
+		sl.size--
 		if sl.size <= 1 {
 			sl.max, sl.min = nil, nil
 		} else if sl.equal(x.key, sl.min.Key) {
