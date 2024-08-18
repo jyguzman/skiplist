@@ -145,9 +145,8 @@ func (sl *SkipList[K, V]) Insert(key K, val V) {
 			update[i].forward[i] = x
 		}
 
-		if sl.min == nil || sl.max == nil {
-			sl.min = x.Item()
-			sl.max = x.Item()
+		if sl.IsEmpty() {
+			sl.min, sl.max = x.Item(), x.Item()
 		}
 		if sl.greater(x.key, sl.max.Key) {
 			sl.max = x.Item()
@@ -179,8 +178,11 @@ func (sl *SkipList[K, V]) Delete(key K) {
 
 	sl.m.Lock()
 	if x != nil && sl.equal(x.key, key) {
-		if sl.equal(x.key, sl.max.Key) {
+		if sl.equal(x.key, sl.max.Key) && update[0] != nil {
 			sl.max = update[0].Item()
+		}
+		if sl.equal(x.key, sl.min.Key) && update[0].forward[0] != nil {
+			sl.min = update[0].forward[0].Item()
 		}
 		for i := 0; i <= sl.level; i++ {
 			if update[i].forward[i] != x {
@@ -222,7 +224,7 @@ func (sl *SkipList[K, V]) Search(key K) (V, bool) {
 }
 
 // Range returns a list of elements sorted from a minimum key to a maximum key.
-func (sl *SkipList[K, V]) Range(start, end K) []*SLItem[K, V] {
+func (sl *SkipList[K, V]) Range(start, end K) []SLItem[K, V] {
 	sl.m.RLock()
 	defer sl.m.RUnlock()
 
@@ -231,7 +233,7 @@ func (sl *SkipList[K, V]) Range(start, end K) []*SLItem[K, V] {
 	if startNode != nil && sl.geq(startNode.key, start) {
 		return sl.iterator(startNode).UpTo(end)
 	}
-	return []*SLItem[K, V]{}
+	return []SLItem[K, V]{}
 }
 
 func merge[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {

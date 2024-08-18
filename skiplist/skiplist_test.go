@@ -1,6 +1,7 @@
 package skiplist
 
 import (
+	"fmt"
 	"slices"
 	"testing"
 )
@@ -155,10 +156,6 @@ func TestSkipList_LazyDelete(t *testing.T) {
 	}
 }
 
-func TestSkipList_LazyDelete_Range(t *testing.T) {
-
-}
-
 func TestSkipListRange(t *testing.T) {
 	sl := NewOrderedKeySkipList[int, string](16, 0.5)
 
@@ -170,6 +167,9 @@ func TestSkipListRange(t *testing.T) {
 	sl.Insert(5, "five")
 	sl.Insert(30, "thirty")
 	sl.Insert(1, "hello, world")
+
+	res := sl.Range(5, 40)
+	fmt.Println(res)
 
 }
 
@@ -200,11 +200,6 @@ func TestSkipList_Min(t *testing.T) {
 	if res.Key != 5 {
 		t.Error("Min after deleting previous min failed")
 	}
-
-	res = sl.Max()
-	if res.Key != 40 {
-		t.Error("Max after deleting previous max failed")
-	}
 }
 
 func TestSkipList_Max(t *testing.T) {
@@ -233,5 +228,30 @@ func TestSkipList_Max(t *testing.T) {
 	res = sl.Max()
 	if res.Key != 40 {
 		t.Error("Max after deleting previous max failed")
+	}
+}
+
+func TestSkipList_ToArray(t *testing.T) {
+	sl := NewOrderedKeySkipList[int, string](16, 0.5)
+
+	items := []SLItem[int, string]{
+		{5, "hello, world"},
+		{2, "bar"},
+		{0, "foo"},
+		{-5, "beefcafe"},
+		{10, "dijkstra"},
+	}
+
+	sl.InsertAll(items)
+
+	want := []SLItem[int, string]{
+		{-5, "beefcafe"}, {0, "foo"},
+		{2, "bar"}, {5, "hello, world"},
+		{10, "dijkstra"},
+	}
+
+	res := sl.ToArray()
+	if !slices.Equal(res, want) {
+		t.Errorf("want %v, got %v", want, res)
 	}
 }

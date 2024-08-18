@@ -41,11 +41,11 @@ func (it *Iterator[K, V]) skipTombstones() {
 	}
 }
 
-func (it *Iterator[K, V]) UpTo(stop K) []*SLItem[K, V] {
-	var results []*SLItem[K, V]
+func (it *Iterator[K, V]) UpTo(stop K) []SLItem[K, V] {
+	var results []SLItem[K, V]
 	for it.HasNext() && it.compareFunc(it.curr.key, stop) <= 0 {
 		it.skipTombstones()
-		results = append(results, it.curr.Item())
+		results = append(results, *it.curr.Item())
 		it.advance()
 	}
 	return results
