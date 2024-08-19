@@ -255,3 +255,7 @@ func TestSkipList_ToArray(t *testing.T) {
 		t.Errorf("want %v, got %v", want, res)
 	}
 }
+
+func Test_Example(t *testing.T) {
+
+}
