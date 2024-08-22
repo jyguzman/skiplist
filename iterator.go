@@ -13,6 +13,14 @@ func (it *Iterator[K, V]) Next() *SLItem[K, V] {
 	return nil
 }
 
+func (it *Iterator[K, V]) next() *SLNode[K, V] {
+	defer it.advance()
+	if it.HasNext() {
+		return it.curr
+	}
+	return nil
+}
+
 func (it *Iterator[K, V]) HasNext() bool {
 	return it.curr != nil
 }

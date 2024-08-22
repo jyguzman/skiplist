@@ -236,22 +236,117 @@ func (sl *SkipList[K, V]) Range(start, end K) []SLItem[K, V] {
 	return []SLItem[K, V]{}
 }
 
-func merge[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
+// Combine combines the elements of two skip lists and returns the result. The P of the new list
+// will be the average of the inputs. The level and maxLevel of the result will be the greatest
+// of those of the inputs. Tombstones from both will be combined. The min of the result will be the
+// smaller min of the inputs, and the max will be the greater max from the inputs.
+func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 	sl1.rw.Lock()
 	sl2.rw.Lock()
 
-	sl1.maxLevel = sl2.maxLevel
+	newMaxLevel := sl1.maxLevel
+	if newMaxLevel < sl2.maxLevel {
+		newMaxLevel = sl2.maxLevel
+	}
 
-	p1, p2 := sl1.header, sl2.header
+	p1, p2 := sl1.header.forward[0], sl2.header.forward[0]
+	var tombstones []*SLNode[K, V]
+
+	newHead := newHeader[K, V](newMaxLevel)
+	previous := make([]*SLNode[K, V], newMaxLevel)
+	for i := 0; i < newMaxLevel; i++ {
+		previous[i] = newHead
+	}
+
+	newP := (sl1.p + sl2.p) / 2.0
 
 	for p1 != nil && p2 != nil {
+		k1, k2 := p1.key, p2.key
+		level := randomLevel(newMaxLevel, newP)
+		var node *SLNode[K, V]
+		if sl1.less(k1, k2) {
+			if p1.markedDeleted {
+				tombstones = append(tombstones, p1)
+			}
+			node = newNode[K, V](level, k1, p1.val)
+			p1 = p1.forward[0]
+		} else {
+			if p2.markedDeleted {
+				tombstones = append(tombstones, p2)
+			}
+			node = newNode[K, V](level, k2, p2.val)
+			p2 = p2.forward[0]
+		}
+		for i := 0; i <= level; i++ {
+			node.forward[i] = previous[i].forward[i]
+			previous[i].forward[i] = node
+			previous[i] = node
+		}
+	}
 
+	for p1 != nil {
+		level := randomLevel(newMaxLevel, newP)
+		if p1.markedDeleted {
+			tombstones = append(tombstones, p1)
+		}
+		node := newNode[K, V](level, p1.key, p1.val)
+		for i := 0; i <= level; i++ {
+			node.forward[i] = previous[i].forward[i]
+			previous[i].forward[i] = node
+			previous[i] = node
+		}
+		p1 = p1.forward[0]
+	}
+
+	for p2 != nil {
+		level := randomLevel(newMaxLevel, newP)
+		if p2.markedDeleted {
+			tombstones = append(tombstones, p2)
+		}
+		node := newNode[K, V](level, p2.key, p2.val)
+		for i := 0; i <= level; i++ {
+			node.forward[i] = previous[i].forward[i]
+			previous[i].forward[i] = node
+			previous[i] = node
+		}
+		p2 = p2.forward[0]
 	}
 
 	sl1.rw.Unlock()
 	sl2.rw.Unlock()
 
-	return nil
+	sl1.rw.RLock()
+	sl2.rw.RLock()
+
+	newMin := sl1.min
+	if sl1.less(sl2.min.Key, sl1.min.Key) {
+		newMin = sl2.min
+	}
+
+	newMax := sl1.max
+	if sl1.greater(sl2.max.Key, sl1.max.Key) {
+		newMin = sl2.max
+	}
+
+	newLevel := sl1.level
+	if newLevel < sl2.level {
+		newLevel = sl2.level
+	}
+
+	sl1.rw.RUnlock()
+	sl1.rw.RUnlock()
+
+	return &SkipList[K, V]{
+		maxLevel:    newMaxLevel,
+		level:       newLevel,
+		p:           newP,
+		size:        sl1.size + sl2.size,
+		compareFunc: sl1.compareFunc,
+		header:      newHead,
+		min:         newMin,
+		max:         newMax,
+		tombstones:  tombstones,
+	}
 }
 
 // Merge combines this skip list with another
@@ -322,7 +417,7 @@ func (sl *SkipList[K, V]) LazyDelete(key K) {
 	sl.rw.Unlock()
 }
 
-// Clean officially removes the lazily "deleted" elements
+// Clean officially removes the nodes marked for deletion with LazyDelete
 func (sl *SkipList[K, V]) Clean() {
 	sl.rw.Lock()
 	for _, t := range sl.tombstones {
@@ -353,23 +448,17 @@ func (sl *SkipList[K, V]) String() string {
 	sl.rw.RLock()
 
 	res := ""
-	p := sl.header
-	var ranks []K
-	for p.forward[0] != nil {
-		ranks = append(ranks, p.forward[0].key)
-	}
 	for i := sl.level; i >= 0; i-- {
-		head := sl.header
-		res += "HEAD -> "
-		level := head.forward[i]
+		level := sl.header.forward[i]
+		levelStr := ""
 		if level != nil {
-			levelString := level.String()
-			res += levelString
+			levelStr += level.String()
 			for i < len(level.forward) && level.forward[i] != nil {
-				res += " -> " + level.forward[i].String()
+				levelStr += " -> " + level.forward[i].String()
 				level = level.forward[i]
 			}
-			res += "\n"
+			levelStr = "* -> " + levelStr + " -> inf"
+			res += levelStr + "\n"
 		}
 	}
 
@@ -378,12 +467,17 @@ func (sl *SkipList[K, V]) String() string {
 }
 
 // randomLevel returns the highest level a node will be assigned
-func (sl *SkipList[K, V]) randomLevel() int {
+func randomLevel(maxLevel int, p float64) int {
 	level := 0
-	for i := 0; i < sl.maxLevel && rand.Float64() < sl.p; i++ {
+	for i := 0; i < maxLevel && rand.Float64() < p; i++ {
 		level++
 	}
 	return level
+}
+
+// randomLevel returns the highest level a node will be assigned
+func (sl *SkipList[K, V]) randomLevel() int {
+	return randomLevel(sl.maxLevel, sl.p)
 }
 
 // less returns true if x < y

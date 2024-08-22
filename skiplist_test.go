@@ -256,6 +256,31 @@ func TestSkipList_ToArray(t *testing.T) {
 	}
 }
 
+func TestSkipList_Combine(t *testing.T) {
+	sl1 := NewOrderedKeySkipList[int, string](16, 0.5)
+	sl2 := NewOrderedKeySkipList[int, string](16, 0.5)
+
+	items1 := []SLItem[int, string]{
+		{6, "hello, world"},
+		{4, "bar"},
+		{2, "foo"},
+		{0, "dijkstra"},
+		{7, "hello, world"},
+		{5, "bar"},
+		{3, "foo"},
+	}
+
+	items2 := []SLItem[int, string]{
+		{1, "dijkstra"},
+	}
+
+	sl1.InsertAll(items2)
+	sl2.InsertAll(items1)
+
+	res := Combine(sl1, sl2)
+	fmt.Println(res)
+}
+
 func Test_Example(t *testing.T) {
 
 }
