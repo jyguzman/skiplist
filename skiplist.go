@@ -352,14 +352,36 @@ func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 	}
 }
 
-// Copy returns a new skip list containing the same elements and struct fields as the original.
+// Copy returns a new skip list containing the same elements as the original.
 func (sl *SkipList[K, V]) Copy() *SkipList[K, V] {
 	newHead := newHeader[K, V](sl.maxLevel)
+	previous := make([]*SLNode[K, V], sl.maxLevel)
+	for i := 0; i < sl.maxLevel; i++ {
+		previous[i] = newHead
+	}
+
+	sl.rw.RLock()
+	newLvl, p := sl.level, sl.header.forward[0]
+	for p != nil {
+		level := sl.randomLevel()
+		if level > newLvl {
+			newLvl = level
+		}
+		node := newNode(level, p.key, p.val)
+		for i := 0; i <= level; i++ {
+			node.forward[i] = previous[i].forward[i]
+			previous[i].forward[i] = node
+			previous[i] = node
+		}
+		p = p.forward[0]
+	}
+	sl.rw.RUnlock()
 
 	return &SkipList[K, V]{
 		maxLevel:   sl.maxLevel,
-		level:      sl.level,
+		level:      newLvl,
 		p:          sl.p,
+		size:       sl.size,
 		header:     newHead,
 		min:        sl.min,
 		max:        sl.max,

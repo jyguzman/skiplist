@@ -283,6 +283,30 @@ func TestSkipList_Combine(t *testing.T) {
 	fmt.Println(res)
 }
 
+func TestSkipList_Copy(t *testing.T) {
+	sl1 := NewOrderedKeySkipList[int, string](16, 0.5)
+
+	items1 := []SLItem[int, string]{
+		{6, "hello, world"},
+		{4, "bar"},
+		{2, "foo"},
+		{0, "dijkstra"},
+		{1, "bing"},
+		{7, "hello, world"},
+		{5, "bar"},
+		{3, "foo"},
+	}
+
+	sl1.InsertAll(items1)
+
+	fmt.Println("sl1:")
+	fmt.Println(sl1)
+
+	fmt.Println("copy:")
+	c := sl1.Copy()
+	fmt.Println(c)
+}
+
 func Test_Example(t *testing.T) {
 
 }
