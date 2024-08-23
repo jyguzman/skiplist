@@ -236,9 +236,10 @@ func (sl *SkipList[K, V]) Range(start, end K) []SLItem[K, V] {
 	return []SLItem[K, V]{}
 }
 
-// Combine returns a new skip list that combines the elements of the inputs. The P of the new list
-// will be the average of the inputs. The level and maxLevel of the result will be the greatest
-// of those of the inputs. Tombstones from both will be combined. The min of the result will be the
+// Combine returns a new skip list with the keys from both lists. If elements from both have equal
+// keys, the result will use the values from the second list. The P of the new list
+// will be the average of the inputs. The level and maxLevel of the result will be the largest of inputs.
+// Tombstones will be combined. The min of the result will be the
 // smaller min of the inputs, and the max will be the greater max from the inputs.
 func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 	sl1.rw.Lock()
@@ -280,6 +281,9 @@ func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 			}
 			node = newNode[K, V](level, k2, p2.val)
 			p2 = p2.forward[0]
+			if sl1.equal(k1, k2) {
+				p1 = p1.forward[0]
+			}
 		}
 		for i := 0; i <= level; i++ {
 			node.forward[i] = previous[i].forward[i]
@@ -348,48 +352,19 @@ func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 	}
 }
 
-// Merge combines this skip list with another
-func (sl *SkipList[K, V]) Merge(other *SkipList[K, V]) {
-	sl.rw.Lock()
-	other.rw.Lock()
+// Copy returns a new skip list containing the same elements and struct fields as the original.
+func (sl *SkipList[K, V]) Copy() *SkipList[K, V] {
+	newHead := newHeader[K, V](sl.maxLevel)
 
-	if other.maxLevel > sl.maxLevel {
-		sl.maxLevel = other.maxLevel
+	return &SkipList[K, V]{
+		maxLevel:   sl.maxLevel,
+		level:      sl.level,
+		p:          sl.p,
+		header:     newHead,
+		min:        sl.min,
+		max:        sl.max,
+		tombstones: sl.tombstones,
 	}
-
-	if sl.less(other.min.Key, sl.min.Key) {
-		sl.min = other.min
-	}
-
-	if sl.greater(other.max.Key, sl.max.Key) {
-		sl.max = other.max
-	}
-
-	sl.tombstones = append(sl.tombstones, other.tombstones...)
-
-	sl.size += other.size
-
-	p1, p2 := sl.header.forward[0], other.header.forward[0]
-	previous := make([]*SLNode[K, V], sl.maxLevel)
-	for i := 0; i <= other.maxLevel; i++ {
-		previous[i] = sl.header
-	}
-
-	for p1 != nil && p2 != nil {
-		////key1, key2 := p1.key, p2.key
-		////var node *SLNode[K, V]
-		////level := sl.randomLevel()
-		//if p1.forward[0] == nil {
-		//	//node = newNode(level, key2, p2.val)
-		//} else {
-		//	//if sl.between(key1, )
-		//}
-	}
-
-	//fmt.Println(p1, p2)
-
-	sl.rw.Unlock()
-	other.rw.Unlock()
 }
 
 // Iterator returns a snapshot iterator over the skip list
@@ -522,11 +497,6 @@ func (sl *SkipList[K, V]) geq(x, y K) bool {
 	return sl.greater(x, y) || sl.equal(x, y)
 }
 
-// geq returns true if x >= y
-func (sl *SkipList[K, V]) between(y, x, z K) bool {
-	return sl.leq(x, y) && sl.leq(y, z)
-}
-
 func (sl *SkipList[K, V]) searchNode(searchKey K) ([]*SLNode[K, V], *SLNode[K, V]) {
 	previous := make([]*SLNode[K, V], sl.maxLevel)
 	x := sl.header
@@ -537,20 +507,6 @@ func (sl *SkipList[K, V]) searchNode(searchKey K) ([]*SLNode[K, V], *SLNode[K, V
 		previous[i] = x
 	}
 	return previous, x
-}
-
-func (sl *SkipList[K, V]) isMin(sn *SLNode[K, V]) bool {
-	sn.lock()
-	defer sn.unlock()
-
-	return sl.equal(sn.key, sl.min.Key)
-}
-
-func (sl *SkipList[K, V]) isMax(sn *SLNode[K, V]) bool {
-	sn.lock()
-	defer sn.unlock()
-
-	return sl.equal(sn.key, sl.max.Key)
 }
 
 // Inserts a key-value pair but doesn't use locks; this is used for the InsertAll() method
