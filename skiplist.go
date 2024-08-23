@@ -236,7 +236,7 @@ func (sl *SkipList[K, V]) Range(start, end K) []SLItem[K, V] {
 	return []SLItem[K, V]{}
 }
 
-// Combine combines the elements of two skip lists and returns the result. The P of the new list
+// Combine returns a new skip list that combines the elements of the inputs. The P of the new list
 // will be the average of the inputs. The level and maxLevel of the result will be the greatest
 // of those of the inputs. Tombstones from both will be combined. The min of the result will be the
 // smaller min of the inputs, and the max will be the greater max from the inputs.
@@ -245,7 +245,7 @@ func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 	sl2.rw.Lock()
 
 	newMaxLevel := sl1.maxLevel
-	if newMaxLevel < sl2.maxLevel {
+	if sl2.maxLevel > newMaxLevel {
 		newMaxLevel = sl2.maxLevel
 	}
 
@@ -259,10 +259,14 @@ func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 	}
 
 	newP := (sl1.p + sl2.p) / 2.0
+	newLevel := 0
 
 	for p1 != nil && p2 != nil {
 		k1, k2 := p1.key, p2.key
 		level := randomLevel(newMaxLevel, newP)
+		if level > newLevel {
+			newLevel = level
+		}
 		var node *SLNode[K, V]
 		if sl1.less(k1, k2) {
 			if p1.markedDeleted {
@@ -328,13 +332,8 @@ func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 		newMin = sl2.max
 	}
 
-	newLevel := sl1.level
-	if newLevel < sl2.level {
-		newLevel = sl2.level
-	}
-
 	sl1.rw.RUnlock()
-	sl1.rw.RUnlock()
+	sl2.rw.RUnlock()
 
 	return &SkipList[K, V]{
 		maxLevel:    newMaxLevel,
@@ -354,25 +353,43 @@ func (sl *SkipList[K, V]) Merge(other *SkipList[K, V]) {
 	sl.rw.Lock()
 	other.rw.Lock()
 
-	defer sl.rw.Unlock()
-	defer other.rw.Unlock()
+	if other.maxLevel > sl.maxLevel {
+		sl.maxLevel = other.maxLevel
+	}
 
-	//p1, p2 := sl.header, other.header
-	//
-	//for p1 != nil && p2 != nil {
-	//	key1, key2 := p1.key, p2.key
-	//	if sl.less(key1, key2) {
-	//
-	//	} else if sl.greater(key1, key2) {
-	//		next := p1.forward[0]
-	//		fmt.Println(next)
-	//	} else {
-	//		lvls1, lvls2 := p1.Level(), p2.Level()
-	//		fmt.Println(lvls1, lvls2)
-	//	}
-	//}
-	//
+	if sl.less(other.min.Key, sl.min.Key) {
+		sl.min = other.min
+	}
+
+	if sl.greater(other.max.Key, sl.max.Key) {
+		sl.max = other.max
+	}
+
+	sl.tombstones = append(sl.tombstones, other.tombstones...)
+
+	sl.size += other.size
+
+	p1, p2 := sl.header.forward[0], other.header.forward[0]
+	previous := make([]*SLNode[K, V], sl.maxLevel)
+	for i := 0; i <= other.maxLevel; i++ {
+		previous[i] = sl.header
+	}
+
+	for p1 != nil && p2 != nil {
+		////key1, key2 := p1.key, p2.key
+		////var node *SLNode[K, V]
+		////level := sl.randomLevel()
+		//if p1.forward[0] == nil {
+		//	//node = newNode(level, key2, p2.val)
+		//} else {
+		//	//if sl.between(key1, )
+		//}
+	}
+
 	//fmt.Println(p1, p2)
+
+	sl.rw.Unlock()
+	other.rw.Unlock()
 }
 
 // Iterator returns a snapshot iterator over the skip list
@@ -457,7 +474,7 @@ func (sl *SkipList[K, V]) String() string {
 				levelStr += " -> " + level.forward[i].String()
 				level = level.forward[i]
 			}
-			levelStr = "* -> " + levelStr + " -> inf"
+			levelStr = "-INF -> " + levelStr + " -> +INF"
 			res += levelStr + "\n"
 		}
 	}
@@ -503,6 +520,11 @@ func (sl *SkipList[K, V]) leq(x, y K) bool {
 // geq returns true if x >= y
 func (sl *SkipList[K, V]) geq(x, y K) bool {
 	return sl.greater(x, y) || sl.equal(x, y)
+}
+
+// geq returns true if x >= y
+func (sl *SkipList[K, V]) between(y, x, z K) bool {
+	return sl.leq(x, y) && sl.leq(y, z)
 }
 
 func (sl *SkipList[K, V]) searchNode(searchKey K) ([]*SLNode[K, V], *SLNode[K, V]) {
