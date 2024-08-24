@@ -598,9 +598,3 @@ func (sl *SkipList[K, V]) iterator(node *SLNode[K, V]) *Iterator[K, V] {
 
 	return &Iterator[K, V]{compareFunc: sl.compareFunc, curr: node}
 }
-
-func (sl *SkipList[K, V]) skipTombstones(node *SLNode[K, V]) {
-	for node.forward[0] != nil && node.forward[0].markedDeleted {
-		node = node.forward[0]
-	}
-}
