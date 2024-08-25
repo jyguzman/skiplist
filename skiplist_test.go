@@ -281,6 +281,7 @@ func TestSkipList_Combine(t *testing.T) {
 
 	res := Combine(sl1, sl2)
 	fmt.Println(res)
+	fmt.Println(res.size)
 }
 
 func TestSkipList_Copy(t *testing.T) {
@@ -315,9 +316,16 @@ func Test_String(t *testing.T) {
 		{4, "bar"},
 		{2, "foo"},
 		{0, "dijkstra"},
+		{1, "one"},
+		{5, "five"},
+		{3, "beefcafe"},
 	}
 
 	sl1.InsertAll(items1)
-
-	fmt.Println(sl1)
+	sl1.LazyDelete(0)
+	sl1.LazyDelete(3)
+	sl1.LazyDelete(4)
+	sl1.LazyDelete(5)
+	sl1.LazyDelete(6)
+	fmt.Println(sl1.String())
 }

@@ -261,7 +261,7 @@ func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 	}
 
 	newP := (sl1.p + sl2.p) / 2.0
-	newLevel := 0
+	newLevel, newSize := 0, 0
 
 	for p1 != nil && p2 != nil {
 		k1, k2 := p1.key, p2.key
@@ -273,12 +273,16 @@ func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 		if sl1.less(k1, k2) {
 			if p1.markedDeleted {
 				tombstones = append(tombstones, p1)
+			} else {
+				newSize++
 			}
 			node = newNode[K, V](level, k1, p1.val)
 			p1 = p1.forward[0]
 		} else {
 			if p2.markedDeleted {
 				tombstones = append(tombstones, p2)
+			} else {
+				newSize++
 			}
 			node = newNode[K, V](level, k2, p2.val)
 			p2 = p2.forward[0]
@@ -297,6 +301,8 @@ func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 		level := randomLevel(newMaxLevel, newP)
 		if p1.markedDeleted {
 			tombstones = append(tombstones, p1)
+		} else {
+			newSize++
 		}
 		node := newNode[K, V](level, p1.key, p1.val)
 		for i := 0; i <= level; i++ {
@@ -311,6 +317,8 @@ func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 		level := randomLevel(newMaxLevel, newP)
 		if p2.markedDeleted {
 			tombstones = append(tombstones, p2)
+		} else {
+			newSize++
 		}
 		node := newNode[K, V](level, p2.key, p2.val)
 		for i := 0; i <= level; i++ {
@@ -344,7 +352,7 @@ func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 		maxLevel:    newMaxLevel,
 		level:       newLevel,
 		p:           newP,
-		size:        sl1.size + sl2.size,
+		size:        newSize,
 		compareFunc: sl1.compareFunc,
 		header:      newHead,
 		min:         newMin,
@@ -468,6 +476,12 @@ func (sl *SkipList[K, V]) String() string {
 	}
 
 	for column, node := 0, sl.header.forward[0]; node != nil; column, node = column+1, node.forward[0] {
+		for node != nil && node.markedDeleted {
+			node = node.forward[0]
+		}
+		if node == nil {
+			break
+		}
 		for row, lvl := sl.level, 0; row >= 0 && lvl <= node.Level(); row, lvl = row-1, lvl+1 {
 			mat[row][column] = node.String()
 		}
