@@ -485,7 +485,6 @@ func (sl *SkipList[K, V]) String() string {
 func (sl *SkipList[K, V]) StringAlt() string {
 	sl.rw.RLock()
 
-	fmt.Println("current level:", sl.level)
 	mat := make([][]string, sl.level+1)
 	for i := range mat {
 		mat[i] = make([]string, sl.size)
@@ -503,12 +502,17 @@ func (sl *SkipList[K, V]) StringAlt() string {
 		for col, str := range row {
 			if str != "" {
 				buf.WriteString(str)
-				//buf.WriteString(" - ")
+				buf.WriteString(" ")
 			} else {
 				bottom := mat[sl.level][col]
-				whitespace := strings.Repeat("-", len(bottom))
-				//buf.WriteString(" ")
-				buf.WriteString(whitespace) // + strings.Repeat( "-", len(bottom)) )
+				spacing := strings.Repeat("-", len(bottom))
+				buf.WriteString(spacing)
+				//if col+1 < sl.size && mat[level][col+1] != "" {
+				//	buf.WriteString(">")
+				//} else {
+				//	buf.WriteString("-")
+				//}
+				buf.WriteString(" ")
 			}
 		}
 		buf.WriteString(" +INF")
