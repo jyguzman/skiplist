@@ -507,12 +507,11 @@ func (sl *SkipList[K, V]) StringAlt() string {
 				bottom := mat[sl.level][col]
 				spacing := strings.Repeat("-", len(bottom))
 				buf.WriteString(spacing)
-				//if col+1 < sl.size && mat[level][col+1] != "" {
-				//	buf.WriteString(">")
-				//} else {
-				//	buf.WriteString("-")
-				//}
-				buf.WriteString(" ")
+				if col+1 < len(row) && row[col+1] != "" {
+					buf.WriteString(" ")
+				} else {
+					buf.WriteString("-")
+				}
 			}
 		}
 		buf.WriteString(" +INF")
