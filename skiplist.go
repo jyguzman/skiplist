@@ -2,7 +2,9 @@ package skiplist
 
 import (
 	"cmp"
+	"fmt"
 	"math/rand"
+	"strings"
 	"sync"
 )
 
@@ -480,8 +482,47 @@ func (sl *SkipList[K, V]) String() string {
 	return res
 }
 
+func (sl *SkipList[K, V]) StringAlt() string {
+	sl.rw.RLock()
+
+	fmt.Println("current level:", sl.level)
+	mat := make([][]string, sl.level+1)
+	for i := range mat {
+		mat[i] = make([]string, sl.size)
+	}
+
+	for column, node := 0, sl.header.forward[0]; node != nil; column, node = column+1, node.forward[0] {
+		for row, lvl := sl.level, 0; row >= 0 && lvl <= node.Level(); row, lvl = row-1, lvl+1 {
+			mat[row][column] = node.String()
+		}
+	}
+
+	buf := strings.Builder{}
+	for _, row := range mat {
+		buf.WriteString("-INF ")
+		for col, str := range row {
+			if str != "" {
+				buf.WriteString(str)
+				//buf.WriteString(" - ")
+			} else {
+				bottom := mat[sl.level][col]
+				whitespace := strings.Repeat("-", len(bottom))
+				//buf.WriteString(" ")
+				buf.WriteString(whitespace) // + strings.Repeat( "-", len(bottom)) )
+			}
+		}
+		buf.WriteString(" +INF")
+		buf.WriteString("\n")
+	}
+
+	sl.rw.RUnlock()
+	return buf.String()
+}
+
 // randomLevel returns the highest level a node will be assigned
 func randomLevel(maxLevel int, p float64) int {
+	//randBits := rand.Int63()
+
 	level := 0
 	for i := 0; i < maxLevel && rand.Float64() < p; i++ {
 		level++
@@ -491,7 +532,7 @@ func randomLevel(maxLevel int, p float64) int {
 
 // randomLevel returns the highest level a node will be assigned
 func (sl *SkipList[K, V]) randomLevel() int {
-	return randomLevel(sl.maxLevel, sl.p)
+	return randomLevel(sl.maxLevel-1, sl.p)
 }
 
 // less returns true if x < y
@@ -543,6 +584,7 @@ func (sl *SkipList[K, V]) insert(key K, val V) {
 		lvl := sl.randomLevel()
 		if lvl > sl.level {
 			for i := sl.level + 1; i <= lvl; i++ {
+				fmt.Println("i:", i)
 				update[i] = sl.header
 			}
 			sl.level = lvl

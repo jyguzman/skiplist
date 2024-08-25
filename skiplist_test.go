@@ -307,6 +307,17 @@ func TestSkipList_Copy(t *testing.T) {
 	fmt.Println(c)
 }
 
-func Test_Example(t *testing.T) {
+func Test_String(t *testing.T) {
+	sl1 := NewOrderedKeySkipList[int, string](16, 0.5)
 
+	items1 := []SLItem[int, string]{
+		{6, "hello, world"},
+		{4, "bar"},
+		{2, "foo"},
+		{0, "dijkstra"},
+	}
+
+	sl1.InsertAll(items1)
+
+	fmt.Println(sl1.StringAlt())
 }
