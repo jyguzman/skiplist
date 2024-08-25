@@ -476,21 +476,20 @@ func (sl *SkipList[K, V]) String() string {
 	buf := strings.Builder{}
 	for _, row := range mat {
 		buf.WriteString("-INF ")
-		for col, str := range row {
+		for column, str := range row {
 			if str != "" {
 				buf.WriteString(str)
 				buf.WriteString(" ")
 			} else {
-				buf.WriteString(strings.Repeat("-", len(mat[sl.level][col])))
-				if col+1 < len(row) && row[col+1] != "" {
+				buf.WriteString(strings.Repeat("-", len(mat[sl.level][column])))
+				if column+1 < len(row) && row[column+1] != "" {
 					buf.WriteString(" ")
 				} else {
 					buf.WriteString("-")
 				}
 			}
 		}
-		buf.WriteString(" +INF")
-		buf.WriteString("\n")
+		buf.WriteString(" +INF \n")
 	}
 
 	sl.rw.RUnlock()
