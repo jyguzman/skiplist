@@ -20,8 +20,8 @@ type SkipList[K, V any] struct {
 	tombstones  []*SLNode[K, V] // the nodes of elements that had been marked deleted
 }
 
-// NewOrderedKeySkipList initializes a skip list using a cmp.Ordered key type with a given maxLevel and p.
-// Optionally include items to initialize list with.
+// NewOrderedKeySkipList initializes a skip list using a cmp.Ordered key type with a given maximum
+// number of levels from 1 to maxLevel. Optionally include items with which to initialize the list.
 func NewOrderedKeySkipList[K cmp.Ordered, V any](maxLevel int, items ...SLItem[K, V]) *SkipList[K, V] {
 	sl := &SkipList[K, V]{
 		maxLevel:    maxLevel - 1,
@@ -37,8 +37,8 @@ func NewOrderedKeySkipList[K cmp.Ordered, V any](maxLevel int, items ...SLItem[K
 }
 
 // NewCustomKeySkipList initializes a skip list using a custom key type that must implement Comparable
-// and with a given maxLevel and p.
-// Optionally include items to initialize list with.
+// and with a given maximum number of levels from 1 to maxLevel.
+// Optionally include items with which to initialize the list.
 func NewCustomKeySkipList[K Comparable, V any](maxLevel int, items ...SLItem[K, V]) *SkipList[K, V] {
 	sl := &SkipList[K, V]{
 		maxLevel:    maxLevel - 1,
@@ -53,9 +53,9 @@ func NewCustomKeySkipList[K Comparable, V any](maxLevel int, items ...SLItem[K, 
 	return sl
 }
 
-// NewSkipList initializes a skip list with a given maxLevel and p. Must supply a comparator function
-// for the K type: cmp.Compare[K] for a primitive ordered type, or Compare[K] for a custom type.
-// Optionally include items to initialize list with.
+// NewSkipList initializes a skip list with a given number of levels from 1 to maxLevel.
+// Must supply a comparator function for the K type: cmp.Compare[K] for a primitive ordered type,
+// or Compare[K] for a custom type. Optionally include items with which to initialize the list.
 func NewSkipList[K, V any](maxLevel int, compareFunc func(K, K) int, items ...SLItem[K, V]) *SkipList[K, V] {
 	sl := &SkipList[K, V]{
 		maxLevel:    maxLevel - 1,
@@ -83,12 +83,12 @@ func (sl *SkipList[K, V]) IsEmpty() bool {
 	return sl.Size() == 0
 }
 
-// MaxLevel returns the maximum numbers of forward pointers a node can have
+// MaxLevel returns the maximum number of levels any node in the skip list can be on.
 func (sl *SkipList[K, V]) MaxLevel() int {
 	return sl.maxLevel
 }
 
-// Level returns the current highest level of the list
+// Level returns the current highest level of any node in the list.
 func (sl *SkipList[K, V]) Level() int {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
@@ -96,7 +96,7 @@ func (sl *SkipList[K, V]) Level() int {
 	return sl.level
 }
 
-// Min returns the element with the minimum key
+// Min returns the element with the minimum key.
 func (sl *SkipList[K, V]) Min() *SLItem[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
@@ -104,7 +104,7 @@ func (sl *SkipList[K, V]) Min() *SLItem[K, V] {
 	return sl.min
 }
 
-// Max returns the element with the maximum key
+// Max returns the element with the maximum key.
 func (sl *SkipList[K, V]) Max() *SLItem[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
@@ -153,7 +153,7 @@ func (sl *SkipList[K, V]) Insert(key K, val V) {
 	sl.rw.Unlock()
 }
 
-// InsertAll bulk inserts an array of key-value pairs
+// InsertAll bulk inserts each element in an array of key-value pairs.
 func (sl *SkipList[K, V]) InsertAll(items []SLItem[K, V]) {
 	sl.rw.Lock()
 	for _, item := range items {
@@ -162,7 +162,7 @@ func (sl *SkipList[K, V]) InsertAll(items []SLItem[K, V]) {
 	sl.rw.Unlock()
 }
 
-// Delete removes a given key & value from the skip list and locks the list.
+// Delete removes the element with given key from the skip list.
 func (sl *SkipList[K, V]) Delete(key K) {
 	sl.rw.RLock()
 	update, x := sl.searchNode(key)
@@ -192,7 +192,7 @@ func (sl *SkipList[K, V]) Delete(key K) {
 	sl.rw.Unlock()
 }
 
-// DeleteAll bulk deletes an array of key-value pairs given by the keys
+// DeleteAll elements with the given keys.
 func (sl *SkipList[K, V]) DeleteAll(keys []K) {
 	sl.rw.Lock()
 	for _, key := range keys {
@@ -201,7 +201,7 @@ func (sl *SkipList[K, V]) DeleteAll(keys []K) {
 	sl.rw.Unlock()
 }
 
-// Search returns a value given by the key if it exists and a bool indicating if it exists
+// Search returns a value given by the key if the key exists and a bool indicating if it does.
 func (sl *SkipList[K, V]) Search(key K) (V, bool) {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
@@ -216,7 +216,7 @@ func (sl *SkipList[K, V]) Search(key K) (V, bool) {
 	return val, false
 }
 
-// Range returns a list of elements sorted from a minimum key to a maximum key.
+// Range returns a sorted list of elements from a minimum key to a maximum key (inclusive).
 func (sl *SkipList[K, V]) Range(start, end K) []SLItem[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
@@ -229,11 +229,11 @@ func (sl *SkipList[K, V]) Range(start, end K) []SLItem[K, V] {
 	return []SLItem[K, V]{}
 }
 
-// Combine returns a new skip list with the keys from both lists. If elements from both have equal
-// keys, the result will use the values from the second list. The P of the new list
-// will be the average of the inputs. The level and maxLevel of the result will be the largest of inputs.
-// Tombstones will be combined. The min of the result will be the
-// smaller min of the inputs, and the max will be the greater max from the inputs.
+// Combine returns a new skip list with the elements from both lists. For any keys that are
+// in both of the lists, the result will use the value from the second list.
+// The maxLevel of the result will be the greater maxLevel of the inputs.
+// Tombstones will be combined. The min of the result will be the  smaller min
+// of the inputs, and the max will be the greater max from the inputs.
 func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 	sl1.rw.Lock()
 	sl2.rw.Lock()
@@ -387,18 +387,18 @@ func (sl *SkipList[K, V]) Copy() *SkipList[K, V] {
 	}
 }
 
-// Iterator returns a snapshot iterator over the skip list
+// Iterator returns a snapshot iterator over the skip list.
 func (sl *SkipList[K, V]) Iterator() *Iterator[K, V] {
 	return sl.iterator(sl.header.forward[0])
 }
 
-// ToArray returns a sorted array of all elements of the skip list
+// ToArray returns a sorted array of all elements of the skip list.
 func (sl *SkipList[K, V]) ToArray() []SLItem[K, V] {
 	return sl.Iterator().All()
 }
 
 // LazyDelete marks a key as deleted but does not actually remove the element. It is treated as
-// deleted, i.e. searches for this key will return nil, and it will be skipped in queries
+// deleted, i.e. searches for this key will return nil, and it will be skipped in queries.
 func (sl *SkipList[K, V]) LazyDelete(key K) {
 	sl.rw.RLock()
 	update, x := sl.searchNode(key)
@@ -456,6 +456,7 @@ func (sl *SkipList[K, V]) Clear() {
 	sl.rw.Unlock()
 }
 
+// String returns a string representing a visualization of the skip list.
 func (sl *SkipList[K, V]) String() string {
 	sl.rw.RLock()
 
@@ -464,7 +465,7 @@ func (sl *SkipList[K, V]) String() string {
 		mat[i] = make([]string, sl.size)
 	}
 
-	notEmpty := make([]bool, sl.level+1)
+	rowHasNode := make([]bool, sl.level+1)
 
 	for column, node := 0, sl.header.forward[0]; node != nil; column, node = column+1, node.forward[0] {
 		for node != nil && node.markedDeleted {
@@ -475,13 +476,13 @@ func (sl *SkipList[K, V]) String() string {
 		}
 		for row, lvl := sl.level, 0; row >= 0 && lvl <= node.Level(); row, lvl = row-1, lvl+1 {
 			mat[row][column] = node.String()
-			notEmpty[row] = true
+			rowHasNode[row] = true
 		}
 	}
 
 	bldr := strings.Builder{}
 	for level, row := range mat {
-		if !notEmpty[level] {
+		if !rowHasNode[level] {
 			continue
 		}
 		bldr.WriteString("-INF ")
@@ -508,13 +509,12 @@ func (sl *SkipList[K, V]) String() string {
 	return bldr.String()
 }
 
-// randomLevel returns the highest level a node will be assigned
+// randomLevel returns highest level to which a node will be promoted, up to maxLevel.
 func randomLevel(maxLevel int) int {
-	randBits := uint64(rand.Int63()) & ((1 << maxLevel) - 1)
-	return bits.TrailingZeros64(randBits)
+	return bits.TrailingZeros64(uint64(rand.Int63()) & ((1 << maxLevel) - 1))
 }
 
-// randomLevel returns the highest level a node will be assigned
+// randomLevel returns the highest level a node will be promoted on insertion.
 func (sl *SkipList[K, V]) randomLevel() int {
 	return randomLevel(sl.maxLevel - 1)
 }
@@ -544,6 +544,8 @@ func (sl *SkipList[K, V]) geq(x, y K) bool {
 	return sl.greater(x, y) || sl.equal(x, y)
 }
 
+// searchNode returns the node with the given key and an array containing the last
+// node that comes before the target node at each level of the list.
 func (sl *SkipList[K, V]) searchNode(searchKey K) ([]*SLNode[K, V], *SLNode[K, V]) {
 	previous := make([]*SLNode[K, V], sl.maxLevel)
 	x := sl.header
@@ -594,8 +596,8 @@ func (sl *SkipList[K, V]) insert(key K, val V) {
 	}
 }
 
-// Deletes a key-value pair but doesn't use locks; this is used for the DeleteAll() method to acquire a single
-// lock for the bulk deletion
+// Deletes a key-value pair but doesn't use locks; this is used for the DeleteAll()
+// method to acquire a single lock for the bulk deletion
 func (sl *SkipList[K, V]) delete(key K) {
 	update, x := sl.searchNode(key)
 	x = x.forward[0]
@@ -617,6 +619,7 @@ func (sl *SkipList[K, V]) delete(key K) {
 	}
 }
 
+// iterator returns an iterator beginning at the given node
 func (sl *SkipList[K, V]) iterator(node *SLNode[K, V]) *Iterator[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
