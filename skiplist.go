@@ -2,7 +2,6 @@ package skiplist
 
 import (
 	"cmp"
-	"fmt"
 	"math/rand"
 	"strings"
 	"sync"
@@ -463,28 +462,6 @@ func (sl *SkipList[K, V]) Clear() {
 func (sl *SkipList[K, V]) String() string {
 	sl.rw.RLock()
 
-	res := ""
-	for i := sl.level; i >= 0; i-- {
-		level := sl.header.forward[i]
-		levelStr := ""
-		if level != nil {
-			levelStr += level.String()
-			for i < len(level.forward) && level.forward[i] != nil {
-				levelStr += " -> " + level.forward[i].String()
-				level = level.forward[i]
-			}
-			levelStr = "-INF -> " + levelStr + " -> +INF"
-			res += levelStr + "\n"
-		}
-	}
-
-	sl.rw.RUnlock()
-	return res
-}
-
-func (sl *SkipList[K, V]) StringAlt() string {
-	sl.rw.RLock()
-
 	mat := make([][]string, sl.level+1)
 	for i := range mat {
 		mat[i] = make([]string, sl.size)
@@ -504,9 +481,7 @@ func (sl *SkipList[K, V]) StringAlt() string {
 				buf.WriteString(str)
 				buf.WriteString(" ")
 			} else {
-				bottom := mat[sl.level][col]
-				spacing := strings.Repeat("-", len(bottom))
-				buf.WriteString(spacing)
+				buf.WriteString(strings.Repeat("-", len(mat[sl.level][col])))
 				if col+1 < len(row) && row[col+1] != "" {
 					buf.WriteString(" ")
 				} else {
@@ -587,7 +562,6 @@ func (sl *SkipList[K, V]) insert(key K, val V) {
 		lvl := sl.randomLevel()
 		if lvl > sl.level {
 			for i := sl.level + 1; i <= lvl; i++ {
-				fmt.Println("i:", i)
 				update[i] = sl.header
 			}
 			sl.level = lvl

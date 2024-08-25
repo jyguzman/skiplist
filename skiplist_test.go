@@ -319,5 +319,5 @@ func Test_String(t *testing.T) {
 
 	sl1.InsertAll(items1)
 
-	fmt.Println(sl1.StringAlt())
+	fmt.Println(sl1)
 }
