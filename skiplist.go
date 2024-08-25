@@ -2,6 +2,7 @@ package skiplist
 
 import (
 	"cmp"
+	"math/bits"
 	"math/rand"
 	"strings"
 	"sync"
@@ -11,7 +12,6 @@ type SkipList[K, V any] struct {
 	rw          sync.RWMutex
 	maxLevel    int             // the maximum number of levels a node can appear on
 	level       int             // the current highest level
-	p           float64         // the chance from 0 to 1 that a node can appear at higher levels
 	size        int             // the current number of elements
 	compareFunc func(K, K) int  // function used to compare keys
 	header      *SLNode[K, V]   // the header node
@@ -22,11 +22,10 @@ type SkipList[K, V any] struct {
 
 // NewOrderedKeySkipList initializes a skip list using a cmp.Ordered key type with a given maxLevel and p.
 // Optionally include items to initialize list with.
-func NewOrderedKeySkipList[K cmp.Ordered, V any](maxLevel int, p float64, items ...SLItem[K, V]) *SkipList[K, V] {
+func NewOrderedKeySkipList[K cmp.Ordered, V any](maxLevel int, items ...SLItem[K, V]) *SkipList[K, V] {
 	sl := &SkipList[K, V]{
 		maxLevel:    maxLevel - 1,
 		level:       0,
-		p:           p,
 		size:        0,
 		header:      newHeader[K, V](maxLevel),
 		compareFunc: cmp.Compare[K],
@@ -40,11 +39,10 @@ func NewOrderedKeySkipList[K cmp.Ordered, V any](maxLevel int, p float64, items 
 // NewCustomKeySkipList initializes a skip list using a custom key type that must implement Comparable
 // and with a given maxLevel and p.
 // Optionally include items to initialize list with.
-func NewCustomKeySkipList[K Comparable, V any](maxLevel int, p float64, items ...SLItem[K, V]) *SkipList[K, V] {
+func NewCustomKeySkipList[K Comparable, V any](maxLevel int, items ...SLItem[K, V]) *SkipList[K, V] {
 	sl := &SkipList[K, V]{
 		maxLevel:    maxLevel - 1,
 		level:       0,
-		p:           p,
 		size:        0,
 		header:      newHeader[K, V](maxLevel),
 		compareFunc: Compare[K],
@@ -58,11 +56,10 @@ func NewCustomKeySkipList[K Comparable, V any](maxLevel int, p float64, items ..
 // NewSkipList initializes a skip list with a given maxLevel and p. Must supply a comparator function
 // for the K type: cmp.Compare[K] for a primitive ordered type, or Compare[K] for a custom type.
 // Optionally include items to initialize list with.
-func NewSkipList[K, V any](maxLevel int, p float64, compareFunc func(K, K) int, items ...SLItem[K, V]) *SkipList[K, V] {
+func NewSkipList[K, V any](maxLevel int, compareFunc func(K, K) int, items ...SLItem[K, V]) *SkipList[K, V] {
 	sl := &SkipList[K, V]{
 		maxLevel:    maxLevel - 1,
 		level:       0,
-		p:           p,
 		size:        0,
 		header:      newHeader[K, V](maxLevel),
 		compareFunc: compareFunc,
@@ -97,11 +94,6 @@ func (sl *SkipList[K, V]) Level() int {
 	defer sl.rw.RUnlock()
 
 	return sl.level
-}
-
-// P returns the chance that a node is inserted into a higher level
-func (sl *SkipList[K, V]) P() float64 {
-	return sl.p
 }
 
 // Min returns the element with the minimum key
@@ -260,12 +252,11 @@ func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 		previous[i] = newHead
 	}
 
-	newP := (sl1.p + sl2.p) / 2.0
 	newLevel, newSize := 0, 0
 
 	for p1 != nil && p2 != nil {
 		k1, k2 := p1.key, p2.key
-		level := randomLevel(newMaxLevel, newP)
+		level := randomLevel(newMaxLevel)
 		if level > newLevel {
 			newLevel = level
 		}
@@ -298,7 +289,7 @@ func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 	}
 
 	for p1 != nil {
-		level := randomLevel(newMaxLevel, newP)
+		level := randomLevel(newMaxLevel)
 		if p1.markedDeleted {
 			tombstones = append(tombstones, p1)
 		} else {
@@ -314,7 +305,7 @@ func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 	}
 
 	for p2 != nil {
-		level := randomLevel(newMaxLevel, newP)
+		level := randomLevel(newMaxLevel)
 		if p2.markedDeleted {
 			tombstones = append(tombstones, p2)
 		} else {
@@ -351,7 +342,6 @@ func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 	return &SkipList[K, V]{
 		maxLevel:    newMaxLevel,
 		level:       newLevel,
-		p:           newP,
 		size:        newSize,
 		compareFunc: sl1.compareFunc,
 		header:      newHead,
@@ -389,7 +379,6 @@ func (sl *SkipList[K, V]) Copy() *SkipList[K, V] {
 	return &SkipList[K, V]{
 		maxLevel:   sl.maxLevel,
 		level:      newLvl,
-		p:          sl.p,
 		size:       sl.size,
 		header:     newHead,
 		min:        sl.min,
@@ -475,6 +464,8 @@ func (sl *SkipList[K, V]) String() string {
 		mat[i] = make([]string, sl.size)
 	}
 
+	notEmpty := make([]bool, sl.level+1)
+
 	for column, node := 0, sl.header.forward[0]; node != nil; column, node = column+1, node.forward[0] {
 		for node != nil && node.markedDeleted {
 			node = node.forward[0]
@@ -484,49 +475,48 @@ func (sl *SkipList[K, V]) String() string {
 		}
 		for row, lvl := sl.level, 0; row >= 0 && lvl <= node.Level(); row, lvl = row-1, lvl+1 {
 			mat[row][column] = node.String()
+			notEmpty[row] = true
 		}
 	}
 
-	buf := strings.Builder{}
+	bldr := strings.Builder{}
 	for level, row := range mat {
-		buf.WriteString("-INF ")
+		if !notEmpty[level] {
+			continue
+		}
+		bldr.WriteString("-INF ")
 		for column, str := range row {
 			if str != "" {
-				buf.WriteString(str)
-				buf.WriteString(" ")
+				bldr.WriteString(str)
+				bldr.WriteString(" ")
 			} else {
-				buf.WriteString(strings.Repeat("-", len(mat[sl.level][column])))
+				bldr.WriteString(strings.Repeat("-", len(mat[sl.level][column])))
 				if column+1 < len(row) && row[column+1] != "" {
-					buf.WriteString(" ")
+					bldr.WriteString(" ")
 				} else {
-					buf.WriteString("-")
+					bldr.WriteString("-")
 				}
 			}
 		}
-		buf.WriteString(" +INF")
+		bldr.WriteString(" +INF")
 		if level != sl.level {
-			buf.WriteString("\n")
+			bldr.WriteString("\n")
 		}
 	}
 
 	sl.rw.RUnlock()
-	return buf.String()
+	return bldr.String()
 }
 
 // randomLevel returns the highest level a node will be assigned
-func randomLevel(maxLevel int, p float64) int {
-	//randBits := rand.Int63()
-
-	level := 0
-	for i := 0; i < maxLevel && rand.Float64() < p; i++ {
-		level++
-	}
-	return level
+func randomLevel(maxLevel int) int {
+	randBits := uint64(rand.Int63()) & ((1 << maxLevel) - 1)
+	return bits.TrailingZeros64(randBits)
 }
 
 // randomLevel returns the highest level a node will be assigned
 func (sl *SkipList[K, V]) randomLevel() int {
-	return randomLevel(sl.maxLevel-1, sl.p)
+	return randomLevel(sl.maxLevel - 1)
 }
 
 // less returns true if x < y
