@@ -80,11 +80,17 @@ func (sl *SkipList[K, V]) Size() int {
 
 // IsEmpty returns true if the skip list has no elements
 func (sl *SkipList[K, V]) IsEmpty() bool {
+	sl.rw.RLock()
+	defer sl.rw.RUnlock()
+
 	return sl.Size() == 0
 }
 
 // MaxLevel returns the maximum number of levels any node in the skip list can be on.
 func (sl *SkipList[K, V]) MaxLevel() int {
+	sl.rw.RLock()
+	defer sl.rw.RUnlock()
+
 	return sl.maxLevel
 }
 
