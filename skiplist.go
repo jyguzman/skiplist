@@ -20,9 +20,9 @@ type SkipList[K, V any] struct {
 	tombstones  []*SLNode[K, V] // the nodes of elements that had been marked deleted
 }
 
-// NewOrderedKeySkipList initializes a skip list using a cmp.Ordered key type with a given maximum
+// NewSkipList initializes a skip list using a cmp.Ordered key type with a given maximum
 // number of levels from 1 to maxLevel. Optionally include items with which to initialize the list.
-func NewOrderedKeySkipList[K cmp.Ordered, V any](maxLevel int, items ...SLItem[K, V]) *SkipList[K, V] {
+func NewSkipList[K cmp.Ordered, V any](maxLevel int, items ...SLItem[K, V]) *SkipList[K, V] {
 	sl := &SkipList[K, V]{
 		maxLevel:    maxLevel - 1,
 		level:       0,
@@ -36,8 +36,9 @@ func NewOrderedKeySkipList[K cmp.Ordered, V any](maxLevel int, items ...SLItem[K
 	return sl
 }
 
-// NewCustomKeySkipList initializes a skip list using a custom key type that must implement Comparable
+// NewCustomKeySkipList initializes a skip list using a user-defined custom key type that must implement Comparable
 // and with a given maximum number of levels from 1 to maxLevel.
+// Use this when you have a key type that isn't a cmp.Ordered type. Your key type must implement Comparable.
 // Optionally include items with which to initialize the list.
 func NewCustomKeySkipList[K Comparable, V any](maxLevel int, items ...SLItem[K, V]) *SkipList[K, V] {
 	sl := &SkipList[K, V]{
@@ -46,23 +47,6 @@ func NewCustomKeySkipList[K Comparable, V any](maxLevel int, items ...SLItem[K, 
 		size:        0,
 		header:      newHeader[K, V](maxLevel),
 		compareFunc: Compare[K],
-	}
-	if items != nil && len(items) > 0 {
-		sl.InsertAll(items)
-	}
-	return sl
-}
-
-// NewSkipList initializes a skip list with a given number of levels from 1 to maxLevel.
-// Must supply a comparator function for the K type: cmp.Compare[K] for a primitive ordered type,
-// or Compare[K] for a custom type. Optionally include items with which to initialize the list.
-func NewSkipList[K, V any](maxLevel int, compareFunc func(K, K) int, items ...SLItem[K, V]) *SkipList[K, V] {
-	sl := &SkipList[K, V]{
-		maxLevel:    maxLevel - 1,
-		level:       0,
-		size:        0,
-		header:      newHeader[K, V](maxLevel),
-		compareFunc: compareFunc,
 	}
 	if items != nil && len(items) > 0 {
 		sl.InsertAll(items)
@@ -193,6 +177,40 @@ func (sl *SkipList[K, V]) Delete(key K) {
 		sl.size--
 		for i := sl.level; i > 0 && sl.header.forward[sl.level] == nil; i-- {
 			sl.level -= 1
+		}
+	}
+	sl.rw.Unlock()
+}
+
+// LazyDelete marks a key as deleted but does not actually remove the element. It is treated as
+// deleted, i.e. searches for this key will return nil, and it will be skipped in queries.
+// If you are not using the skip list in a situation where lazy deletion provides better efficiency
+// or consistency, such as in an LSM engine, you should prefer Delete instead.
+func (sl *SkipList[K, V]) LazyDelete(key K) {
+	sl.rw.RLock()
+	update, x := sl.searchNode(key)
+	x = x.forward[0]
+	sl.rw.RUnlock()
+
+	sl.rw.Lock()
+	if x != nil {
+		x.markedDeleted = true
+		sl.size--
+		if sl.size <= 1 {
+			sl.max, sl.min = nil, nil
+		} else if sl.equal(x.key, sl.min.Key) {
+			if update[0].isHeader {
+				sl.min = x.forward[0].Item()
+			} else {
+				sl.min = update[0].Item()
+			}
+		}
+		if sl.equal(x.key, sl.max.Key) {
+			if x.forward[0] != nil {
+				sl.max = x.forward[0].Item()
+			} else {
+				sl.max = update[0].Item()
+			}
 		}
 	}
 	sl.rw.Unlock()
@@ -401,38 +419,6 @@ func (sl *SkipList[K, V]) Iterator() *Iterator[K, V] {
 // ToArray returns a sorted array of all elements of the skip list.
 func (sl *SkipList[K, V]) ToArray() []SLItem[K, V] {
 	return sl.Iterator().All()
-}
-
-// LazyDelete marks a key as deleted but does not actually remove the element. It is treated as
-// deleted, i.e. searches for this key will return nil, and it will be skipped in queries.
-func (sl *SkipList[K, V]) LazyDelete(key K) {
-	sl.rw.RLock()
-	update, x := sl.searchNode(key)
-	x = x.forward[0]
-	sl.rw.RUnlock()
-
-	sl.rw.Lock()
-	if x != nil {
-		x.markedDeleted = true
-		sl.size--
-		if sl.size <= 1 {
-			sl.max, sl.min = nil, nil
-		} else if sl.equal(x.key, sl.min.Key) {
-			if update[0].isHeader {
-				sl.min = x.forward[0].Item()
-			} else {
-				sl.min = update[0].Item()
-			}
-		}
-		if sl.equal(x.key, sl.max.Key) {
-			if x.forward[0] != nil {
-				sl.max = x.forward[0].Item()
-			} else {
-				sl.max = update[0].Item()
-			}
-		}
-	}
-	sl.rw.Unlock()
 }
 
 // Clean officially removes the nodes marked for deletion with LazyDelete

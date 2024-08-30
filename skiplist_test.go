@@ -6,8 +6,12 @@ import (
 	"testing"
 )
 
-func TestSkipListInsert(t *testing.T) {
-	sl := NewOrderedKeySkipList[int, string](16)
+func AsserEqual[K, V comparable](t *testing.T, message string, a ...K) {
+
+}
+
+func TestSkipList_Insert(t *testing.T) {
+	sl := NewSkipList[int, string](16)
 
 	sl.Insert(2, "hello, world")
 	sl.Insert(0, "bar")
@@ -33,7 +37,7 @@ func TestSkipListInsert(t *testing.T) {
 }
 
 func TestSkipList_InsertExistingKey(t *testing.T) {
-	sl := NewOrderedKeySkipList[int, string](16)
+	sl := NewSkipList[int, string](16)
 
 	want := "bye, world"
 	sl.Insert(2, "hello, world")
@@ -50,7 +54,7 @@ func TestSkipList_InsertExistingKey(t *testing.T) {
 }
 
 func TestSkipList_Search(t *testing.T) {
-	sl := NewOrderedKeySkipList[int, string](16)
+	sl := NewSkipList[int, string](16)
 
 	items := []SLItem[int, string]{
 		{5, "hello, world"},
@@ -81,7 +85,7 @@ func TestSkipList_Search(t *testing.T) {
 }
 
 func TestSkipList_Delete(t *testing.T) {
-	sl := NewOrderedKeySkipList[int, string](16)
+	sl := NewSkipList[int, string](16)
 
 	items := []SLItem[int, string]{
 		{5, "hello, world"},
@@ -119,7 +123,7 @@ func TestSkipList_Delete(t *testing.T) {
 }
 
 func TestSkipList_LazyDelete(t *testing.T) {
-	sl := NewOrderedKeySkipList[int, string](16)
+	sl := NewSkipList[int, string](16)
 
 	items := []SLItem[int, string]{
 		{5, "hello, world"},
@@ -156,8 +160,8 @@ func TestSkipList_LazyDelete(t *testing.T) {
 	}
 }
 
-func TestSkipListRange(t *testing.T) {
-	sl := NewOrderedKeySkipList[int, string](16)
+func TestSkipList_Range(t *testing.T) {
+	sl := NewSkipList[int, string](16)
 
 	sl.Insert(10, "ten")
 	sl.Insert(20, "twenty")
@@ -174,7 +178,7 @@ func TestSkipListRange(t *testing.T) {
 }
 
 func TestSkipList_Min(t *testing.T) {
-	sl := NewOrderedKeySkipList[int, string](16)
+	sl := NewSkipList[int, string](16)
 
 	res := sl.Min()
 	if res != nil {
@@ -203,7 +207,7 @@ func TestSkipList_Min(t *testing.T) {
 }
 
 func TestSkipList_Max(t *testing.T) {
-	sl := NewOrderedKeySkipList[int, string](16)
+	sl := NewSkipList[int, string](16)
 
 	res := sl.Max()
 	if res != nil {
@@ -232,7 +236,7 @@ func TestSkipList_Max(t *testing.T) {
 }
 
 func TestSkipList_ToArray(t *testing.T) {
-	sl := NewOrderedKeySkipList[int, string](16)
+	sl := NewSkipList[int, string](16)
 
 	items := []SLItem[int, string]{
 		{5, "hello, world"},
@@ -257,8 +261,8 @@ func TestSkipList_ToArray(t *testing.T) {
 }
 
 func TestSkipList_Combine(t *testing.T) {
-	sl1 := NewOrderedKeySkipList[int, string](16)
-	sl2 := NewOrderedKeySkipList[int, string](16)
+	sl1 := NewSkipList[int, string](16)
+	sl2 := NewSkipList[int, string](16)
 
 	items1 := []SLItem[int, string]{
 		{6, "hello, world"},
@@ -285,7 +289,7 @@ func TestSkipList_Combine(t *testing.T) {
 }
 
 func TestSkipList_Copy(t *testing.T) {
-	sl1 := NewOrderedKeySkipList[int, string](16)
+	sl1 := NewSkipList[int, string](16)
 
 	items1 := []SLItem[int, string]{
 		{6, "hello, world"},
@@ -309,7 +313,7 @@ func TestSkipList_Copy(t *testing.T) {
 }
 
 func Test_String(t *testing.T) {
-	sl1 := NewOrderedKeySkipList[int, string](16)
+	sl1 := NewSkipList[int, string](16)
 
 	items1 := []SLItem[int, string]{
 		{6, "hello, world"},
