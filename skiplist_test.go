@@ -272,14 +272,15 @@ func TestSkipList_Combine(t *testing.T) {
 		{2, "foo"},
 		{0, "dijkstra"},
 		{1, "bing"},
-		{7, "hello, world"},
-		{5, "bar"},
-		{3, "foo"},
+		{7, "bye, world"},
 	}
 
 	items2 := []SLItem[int, string]{
-		{1, "bong"},
+		{-1, "negOne"},
 		{2, "boom"},
+		{5, "bar"},
+		{1, "bong"},
+		{3, "foo"},
 	}
 
 	sl1.InsertAll(items1)

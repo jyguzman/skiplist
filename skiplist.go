@@ -242,7 +242,7 @@ func (sl *SkipList[K, V]) Search(key K) (V, bool) {
 	_, x := sl.searchNode(key)
 	x = x.forward[0]
 	var val V
-	if x != nil && sl.equal(x.key, key) && !x.markedDeleted {
+	if x != nil && !sl.less(key, x.key) && !x.markedDeleted {
 		val = x.val
 		return val, true
 	}
@@ -302,7 +302,7 @@ func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 			}
 			node = newNode[K, V](level, k1, p1.val)
 			p1 = p1.forward[0]
-		} else {
+		} else if sl1.less(k2, k1) {
 			if p2.markedDeleted {
 				tombstones = append(tombstones, p2)
 			} else {
@@ -310,10 +310,11 @@ func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 			}
 			node = newNode[K, V](level, k2, p2.val)
 			p2 = p2.forward[0]
-			if sl1.equal(k1, k2) {
-				p1 = p1.forward[0]
-			}
+		} else {
+			p1 = p1.forward[0]
+			continue
 		}
+
 		for i := 0; i <= level; i++ {
 			node.forward[i] = previous[i].forward[i]
 			previous[i].forward[i] = node
@@ -548,7 +549,10 @@ func (sl *SkipList[K, V]) searchNode(searchKey K) ([]*SLNode[K, V], *SLNode[K, V
 func (sl *SkipList[K, V]) insert(key K, val V) {
 	update, x := sl.searchNode(key)
 	x = x.forward[0]
-	if x != nil && sl.less(key, x.key) {
+	if x != nil && !sl.less(key, x.key) {
+		x.val = val
+		x.markedDeleted = false
+	} else {
 		lvl := sl.randomLevel()
 		if lvl > sl.level {
 			for i := sl.level + 1; i <= lvl; i++ {
@@ -563,20 +567,17 @@ func (sl *SkipList[K, V]) insert(key K, val V) {
 			update[i].forward[i] = x
 		}
 
-		if sl.min == nil || sl.max == nil {
-			sl.max = x.Item()
-			sl.min = x.Item()
+		if sl.size == 0 {
+			sl.min, sl.max = x.Item(), x.Item()
 		}
 		if sl.less(x.key, sl.min.Key) {
 			sl.min = x.Item()
-		} else {
+		}
+		if sl.less(sl.max.Key, x.key) {
 			sl.max = x.Item()
 		}
 
 		sl.size++
-	} else {
-		x.val = val
-		x.markedDeleted = false
 	}
 }
 
