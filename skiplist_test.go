@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"testing"
+	"time"
 )
 
 func AsserEqual[K, V comparable](t *testing.T, message string, a ...K) {
@@ -292,28 +293,11 @@ func Test_String(t *testing.T) {
 	fmt.Println(sl1.String())
 }
 
-type Custom struct {
-	Primary   int
-	Secondary string
-}
-
-func CustomCompare(c1, c2 Custom) int {
-	if c1.Primary < c2.Primary {
-		return -1
-	}
-	if c1.Primary > c2.Primary {
-		return 1
-	}
-	if c1.Secondary < c2.Secondary {
-		return -1
-	}
-	if c1.Secondary > c2.Secondary {
-		return 1
-	}
-	return 0
-}
-
 func TestNewCustomKeySkipList(t *testing.T) {
-	sl := NewCustomSkipList[Custom, string](16, CustomCompare)
-	sl.Insert(Custom{5, "hello"}, "5: hello")
+	sl := NewCustomSkipList[time.Time, string](16, func(t1 time.Time, t2 time.Time) bool {
+		return t1.Before(t2)
+	})
+	sl.Insert(time.Now(), "hello, world")
+	sl.Insert(time.Now().Add(5), "bye, world")
+	fmt.Println(sl)
 }

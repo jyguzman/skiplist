@@ -9,25 +9,25 @@ import (
 )
 
 type SkipList[K, V any] struct {
-	rw          sync.RWMutex
-	maxLevel    int            // the maximum number of levels a node can appear on
-	level       int            // the current highest level
-	size        int            // the current number of elements
-	compareFunc func(K, K) int // function used to compare keys
-	header      *SLNode[K, V]  // the header node
-	min         *SLItem[K, V]  // the element with the minimum key
-	max         *SLItem[K, V]  // the element with the maximum key
+	rw       sync.RWMutex
+	maxLevel int             // the maximum number of levels a node can appear on
+	level    int             // the current highest level
+	size     int             // the current number of elements
+	less     func(K, K) bool // function used to compare keys
+	header   *SLNode[K, V]   // the header node
+	min      *SLItem[K, V]   // the element with the minimum key
+	max      *SLItem[K, V]   // the element with the maximum key
 }
 
 // NewSkipList initializes a skip list using a cmp.Ordered key type with a given maximum
 // number of levels from 1 to maxLevel. Optionally include items with which to initialize the list.
 func NewSkipList[K cmp.Ordered, V any](maxLevel int, items ...SLItem[K, V]) *SkipList[K, V] {
 	sl := &SkipList[K, V]{
-		maxLevel:    maxLevel - 1,
-		level:       0,
-		size:        0,
-		header:      newHeader[K, V](maxLevel),
-		compareFunc: cmp.Compare[K],
+		maxLevel: maxLevel - 1,
+		level:    0,
+		size:     0,
+		header:   newHeader[K, V](maxLevel),
+		less:     func(k1, k2 K) bool { return cmp.Compare[K](k1, k2) == -1 },
 	}
 	if items != nil && len(items) > 0 {
 		sl.InsertAll(items)
@@ -39,13 +39,13 @@ func NewSkipList[K cmp.Ordered, V any](maxLevel int, items ...SLItem[K, V]) *Ski
 // and with a given maximum number of levels from 1 to maxLevel.
 // Use this when you have a key type that isn't a cmp.Ordered type. Your key type must implement Comparable.
 // Optionally include items with which to initialize the list.
-func NewCustomSkipList[K, V any](maxLevel int, compareFunc func(K, K) int, items ...SLItem[K, V]) *SkipList[K, V] {
+func NewCustomSkipList[K, V any](maxLevel int, less func(K, K) bool, items ...SLItem[K, V]) *SkipList[K, V] {
 	sl := &SkipList[K, V]{
-		maxLevel:    maxLevel - 1,
-		level:       0,
-		size:        0,
-		header:      newHeader[K, V](maxLevel),
-		compareFunc: compareFunc,
+		maxLevel: maxLevel - 1,
+		level:    0,
+		size:     0,
+		header:   newHeader[K, V](maxLevel),
+		less:     less,
 	}
 	if items != nil && len(items) > 0 {
 		sl.InsertAll(items)
@@ -316,13 +316,13 @@ func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 	sl2.rw.RUnlock()
 
 	return &SkipList[K, V]{
-		maxLevel:    newMaxLevel,
-		level:       newLevel,
-		size:        newSize,
-		compareFunc: sl1.compareFunc,
-		header:      newHead,
-		min:         newMin,
-		max:         newMax,
+		maxLevel: newMaxLevel,
+		level:    newLevel,
+		size:     newSize,
+		less:     sl1.less,
+		header:   newHead,
+		min:      newMin,
+		max:      newMax,
 	}
 }
 
@@ -441,16 +441,6 @@ func (sl *SkipList[K, V]) randomLevel() int {
 	return randomLevel(sl.maxLevel - 1)
 }
 
-// less returns true if x < y
-func (sl *SkipList[K, V]) less(x, y K) bool {
-	return sl.compareFunc(x, y) == -1
-}
-
-// equal returns true if x == y
-func (sl *SkipList[K, V]) equal(x, y K) bool {
-	return sl.compareFunc(x, y) == 0
-}
-
 // searchNode returns the node with the given key and an array containing the last
 // node that comes before the target node at each level of the list.
 func (sl *SkipList[K, V]) searchNode(searchKey K) ([]*SLNode[K, V], *SLNode[K, V]) {
@@ -536,5 +526,5 @@ func (sl *SkipList[K, V]) iterator(node *SLNode[K, V]) *Iterator[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
 
-	return &Iterator[K, V]{compareFunc: sl.compareFunc, curr: node}
+	return &Iterator[K, V]{less: sl.less, curr: node}
 }

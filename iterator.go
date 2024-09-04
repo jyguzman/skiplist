@@ -1,8 +1,8 @@
 package skiplist
 
 type Iterator[K, V any] struct {
-	compareFunc func(K, K) int
-	curr        *SLNode[K, V]
+	less func(K, K) bool
+	curr *SLNode[K, V]
 }
 
 func (it *Iterator[K, V]) Next() *SLItem[K, V] {
@@ -58,7 +58,7 @@ func (it *Iterator[K, V]) advance() {
 
 func (it *Iterator[K, V]) UpTo(stop K) []SLItem[K, V] {
 	var results []SLItem[K, V]
-	for it.HasNext() && it.compareFunc(it.curr.key, stop) <= 0 {
+	for it.HasNext() && it.less(it.curr.key, stop) {
 		results = append(results, *it.curr.Item())
 		it.advance()
 	}
