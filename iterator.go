@@ -28,7 +28,6 @@ func (it *Iterator[K, V]) HasNext() bool {
 func (it *Iterator[K, V]) All() []SLItem[K, V] {
 	var results []SLItem[K, V]
 	for it.HasNext() {
-		it.skipTombstones()
 		results = append(results, *it.curr.Item())
 		it.advance()
 	}
@@ -36,15 +35,7 @@ func (it *Iterator[K, V]) All() []SLItem[K, V] {
 }
 
 func (it *Iterator[K, V]) advance() {
-	it.skipTombstones()
 	if it.curr != nil {
-		it.curr = it.curr.forward[0]
-	}
-	it.skipTombstones()
-}
-
-func (it *Iterator[K, V]) skipTombstones() {
-	for it.curr != nil && it.curr.markedDeleted {
 		it.curr = it.curr.forward[0]
 	}
 }
@@ -52,7 +43,6 @@ func (it *Iterator[K, V]) skipTombstones() {
 func (it *Iterator[K, V]) UpTo(stop K) []SLItem[K, V] {
 	var results []SLItem[K, V]
 	for it.HasNext() && it.compareFunc(it.curr.key, stop) <= 0 {
-		it.skipTombstones()
 		results = append(results, *it.curr.Item())
 		it.advance()
 	}

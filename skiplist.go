@@ -10,14 +10,13 @@ import (
 
 type SkipList[K, V any] struct {
 	rw          sync.RWMutex
-	maxLevel    int             // the maximum number of levels a node can appear on
-	level       int             // the current highest level
-	size        int             // the current number of elements
-	compareFunc func(K, K) int  // function used to compare keys
-	header      *SLNode[K, V]   // the header node
-	min         *SLItem[K, V]   // the element with the minimum key
-	max         *SLItem[K, V]   // the element with the maximum key
-	tombstones  []*SLNode[K, V] // the nodes of elements that had been marked deleted
+	maxLevel    int            // the maximum number of levels a node can appear on
+	level       int            // the current highest level
+	size        int            // the current number of elements
+	compareFunc func(K, K) int // function used to compare keys
+	header      *SLNode[K, V]  // the header node
+	min         *SLItem[K, V]  // the element with the minimum key
+	max         *SLItem[K, V]  // the element with the maximum key
 }
 
 // NewSkipList initializes a skip list using a cmp.Ordered key type with a given maximum
@@ -52,11 +51,6 @@ func NewCustomSkipList[K, V any](maxLevel int, compareFunc func(K, K) int, items
 		sl.InsertAll(items)
 	}
 	return sl
-}
-
-// NewCustomSkipListWithLazyDelete initializes a custom comparator skip list that will only lazily delete elements
-func NewCustomSkipListWithLazyDelete[K, V any](maxLevel int, compareFunc func(K, K) int, items ...SLItem[K, V]) *SkipList[K, V] {
-	return NewCustomSkipList(maxLevel, compareFunc, items...)
 }
 
 // Size returns the number of elements in the skip list
@@ -117,7 +111,6 @@ func (sl *SkipList[K, V]) Insert(key K, val V) {
 	sl.rw.Lock()
 	if x != nil && !sl.less(key, x.key) {
 		x.val = val
-		x.markedDeleted = false
 	} else {
 		lvl := sl.randomLevel()
 		if lvl > sl.level {
@@ -191,40 +184,6 @@ func (sl *SkipList[K, V]) Delete(key K) {
 	sl.rw.Unlock()
 }
 
-// LazyDelete marks a key as deleted but does not actually remove the element. It is treated as
-// deleted, i.e. searches for this key will return nil, and it will be skipped in queries.
-// If you are not using the skip list in a situation where lazy deletion provides better efficiency
-// or consistency, such as in an LSM engine, you should prefer Delete instead.
-func (sl *SkipList[K, V]) LazyDelete(key K) {
-	sl.rw.RLock()
-	update, x := sl.searchNode(key)
-	x = x.forward[0]
-	sl.rw.RUnlock()
-
-	sl.rw.Lock()
-	if x != nil {
-		x.markedDeleted = true
-		sl.size--
-		if sl.size <= 1 {
-			sl.max, sl.min = nil, nil
-		} else if sl.equal(x.key, sl.min.Key) {
-			if update[0].isHeader {
-				sl.min = x.forward[0].Item()
-			} else {
-				sl.min = update[0].Item()
-			}
-		}
-		if sl.equal(x.key, sl.max.Key) {
-			if x.forward[0] != nil {
-				sl.max = x.forward[0].Item()
-			} else {
-				sl.max = update[0].Item()
-			}
-		}
-	}
-	sl.rw.Unlock()
-}
-
 // DeleteAll elements with the given keys.
 func (sl *SkipList[K, V]) DeleteAll(keys []K) {
 	sl.rw.Lock()
@@ -242,7 +201,7 @@ func (sl *SkipList[K, V]) Search(key K) (V, bool) {
 	_, x := sl.searchNode(key)
 	x = x.forward[0]
 	var val V
-	if x != nil && !sl.less(key, x.key) && !x.markedDeleted {
+	if x != nil && !sl.less(key, x.key) {
 		val = x.val
 		return val, true
 	}
@@ -277,7 +236,6 @@ func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 	}
 
 	p1, p2 := sl1.header.forward[0], sl2.header.forward[0]
-	var tombstones []*SLNode[K, V]
 
 	newHead := newHeader[K, V](newMaxLevel)
 	previous := make([]*SLNode[K, V], newMaxLevel)
@@ -295,19 +253,11 @@ func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 		}
 		var node *SLNode[K, V]
 		if sl1.less(k1, k2) {
-			if p1.markedDeleted {
-				tombstones = append(tombstones, p1)
-			} else {
-				newSize++
-			}
+			newSize++
 			node = newNode[K, V](level, k1, p1.val)
 			p1 = p1.forward[0]
 		} else if sl1.less(k2, k1) {
-			if p2.markedDeleted {
-				tombstones = append(tombstones, p2)
-			} else {
-				newSize++
-			}
+			newSize++
 			node = newNode[K, V](level, k2, p2.val)
 			p2 = p2.forward[0]
 		} else {
@@ -324,11 +274,7 @@ func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 
 	for p1 != nil {
 		level := randomLevel(newMaxLevel)
-		if p1.markedDeleted {
-			tombstones = append(tombstones, p1)
-		} else {
-			newSize++
-		}
+		newSize++
 		node := newNode[K, V](level, p1.key, p1.val)
 		for i := 0; i <= level; i++ {
 			node.forward[i] = previous[i].forward[i]
@@ -340,11 +286,7 @@ func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 
 	for p2 != nil {
 		level := randomLevel(newMaxLevel)
-		if p2.markedDeleted {
-			tombstones = append(tombstones, p2)
-		} else {
-			newSize++
-		}
+		newSize++
 		node := newNode[K, V](level, p2.key, p2.val)
 		for i := 0; i <= level; i++ {
 			node.forward[i] = previous[i].forward[i]
@@ -410,13 +352,12 @@ func (sl *SkipList[K, V]) Copy() *SkipList[K, V] {
 	sl.rw.RUnlock()
 
 	return &SkipList[K, V]{
-		maxLevel:   sl.maxLevel,
-		level:      newLvl,
-		size:       sl.size,
-		header:     newHead,
-		min:        sl.min,
-		max:        sl.max,
-		tombstones: sl.tombstones,
+		maxLevel: sl.maxLevel,
+		level:    newLvl,
+		size:     sl.size,
+		header:   newHead,
+		min:      sl.min,
+		max:      sl.max,
 	}
 }
 
@@ -430,26 +371,12 @@ func (sl *SkipList[K, V]) ToArray() []SLItem[K, V] {
 	return sl.Iterator().All()
 }
 
-// Clean officially removes the nodes marked for deletion with LazyDelete
-func (sl *SkipList[K, V]) Clean() {
-	sl.rw.Lock()
-	for _, t := range sl.tombstones {
-		// there may have been an insert for this key, so check to see it's still marked deleted
-		if t.markedDeleted {
-			sl.delete(t.key)
-		}
-	}
-	sl.tombstones = nil
-	sl.rw.Unlock()
-}
-
 // Clear removes all elements from the skip list
 func (sl *SkipList[K, V]) Clear() {
 	sl.rw.Lock()
 
 	sl.size = 0
 	sl.level = 0
-	sl.tombstones = nil
 	sl.max = nil
 	sl.min = nil
 	sl.header = newHeader[K, V](sl.maxLevel)
@@ -469,12 +396,6 @@ func (sl *SkipList[K, V]) String() string {
 	rowHasNode := make([]bool, sl.level+1)
 
 	for column, node := 0, sl.header.forward[0]; node != nil; column, node = column+1, node.forward[0] {
-		for node != nil && node.markedDeleted {
-			node = node.forward[0]
-		}
-		if node == nil {
-			break
-		}
 		for row, lvl := sl.level, 0; row >= 0 && lvl <= node.Level(); row, lvl = row-1, lvl+1 {
 			mat[row][column] = node.String()
 			rowHasNode[row] = true
@@ -551,7 +472,6 @@ func (sl *SkipList[K, V]) insert(key K, val V) {
 	x = x.forward[0]
 	if x != nil && !sl.less(key, x.key) {
 		x.val = val
-		x.markedDeleted = false
 	} else {
 		lvl := sl.randomLevel()
 		if lvl > sl.level {

@@ -62,35 +62,6 @@ func TestIterator_All(t *testing.T) {
 	}
 }
 
-func TestIterator_All_WithoutTombstones(t *testing.T) {
-	sl := NewSkipList[int, string](16)
-
-	items := []SLItem[int, string]{
-		{5, "hello, world"},
-		{2, "bar"},
-		{0, "foo"},
-		{-5, "beefcafe"},
-		{10, "dijkstra"},
-	}
-
-	for _, item := range items {
-		sl.Insert(item.Key, item.Val)
-	}
-
-	sl.LazyDelete(-5)
-	sl.LazyDelete(2)
-	sl.LazyDelete(10)
-
-	want := []SLItem[int, string]{
-		{0, "foo"}, {5, "hello, world"},
-	}
-
-	res := sl.Iterator().All()
-	if !slices.Equal(res, want) {
-		t.Errorf("All: got %v\n want %v", res, want)
-	}
-}
-
 func TestIterator_UpTo(t *testing.T) {
 	sl := NewSkipList[int, string](16)
 

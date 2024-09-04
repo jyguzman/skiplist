@@ -122,44 +122,6 @@ func TestSkipList_Delete(t *testing.T) {
 	}
 }
 
-func TestSkipList_LazyDelete(t *testing.T) {
-	sl := NewSkipList[int, string](16)
-
-	items := []SLItem[int, string]{
-		{5, "hello, world"},
-		{2, "bar"},
-		{0, "foo"},
-		{-5, "beefcafe"},
-		{10, "dijkstra"},
-	}
-
-	for _, item := range items {
-		sl.Insert(item.Key, item.Val)
-	}
-
-	sl.LazyDelete(-5)
-	sl.LazyDelete(2)
-
-	_, ok := sl.Search(-5)
-	if ok {
-		t.Errorf("testing lazy delete: deleted key %d found", -5)
-	}
-
-	_, ok = sl.Search(2)
-	if ok {
-		t.Errorf("testing lazy delete: deleted key %d found", 2)
-	}
-
-	if sl.size != len(items)-2 {
-		t.Errorf("lazy delete: want: %v, got: %v", len(items), sl.size)
-	}
-
-	sl.Delete(-2)
-	if sl.size != len(items)-2 {
-		t.Errorf("deleting deleted affected size: want: %v, got: %v", len(items), sl.size)
-	}
-}
-
 func TestSkipList_Range(t *testing.T) {
 	sl := NewSkipList[int, string](16)
 
@@ -327,11 +289,6 @@ func Test_String(t *testing.T) {
 	}
 
 	sl1.InsertAll(items1)
-	sl1.LazyDelete(0)
-	sl1.LazyDelete(2)
-	sl1.LazyDelete(5)
-	sl1.LazyDelete(3)
-	sl1.LazyDelete(6)
 	fmt.Println(sl1.String())
 }
 
