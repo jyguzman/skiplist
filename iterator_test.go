@@ -6,7 +6,7 @@ import (
 )
 
 func TestIterator_Next(t *testing.T) {
-	sl := NewOrderedKeySkipList[int, string](16)
+	sl := NewSkipList[int, string](16)
 
 	items := []SLItem[int, string]{
 		{5, "hello, world"},
@@ -36,7 +36,7 @@ func TestIterator_Next(t *testing.T) {
 }
 
 func TestIterator_All(t *testing.T) {
-	sl := NewOrderedKeySkipList[int, string](16)
+	sl := NewSkipList[int, string](16)
 
 	items := []SLItem[int, string]{
 		{5, "hello, world"},
@@ -63,7 +63,7 @@ func TestIterator_All(t *testing.T) {
 }
 
 func TestIterator_All_WithoutTombstones(t *testing.T) {
-	sl := NewOrderedKeySkipList[int, string](16)
+	sl := NewSkipList[int, string](16)
 
 	items := []SLItem[int, string]{
 		{5, "hello, world"},
@@ -92,7 +92,7 @@ func TestIterator_All_WithoutTombstones(t *testing.T) {
 }
 
 func TestIterator_UpTo(t *testing.T) {
-	sl := NewOrderedKeySkipList[int, string](16)
+	sl := NewSkipList[int, string](16)
 
 	items := []SLItem[int, string]{
 		{5, "hello, world"},

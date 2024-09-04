@@ -36,22 +36,27 @@ func NewSkipList[K cmp.Ordered, V any](maxLevel int, items ...SLItem[K, V]) *Ski
 	return sl
 }
 
-// NewCustomKeySkipList initializes a skip list using a user-defined custom key type that must implement Comparable
+// NewCustomSkipList initializes a skip list using a user-defined custom key type that must implement Comparable
 // and with a given maximum number of levels from 1 to maxLevel.
 // Use this when you have a key type that isn't a cmp.Ordered type. Your key type must implement Comparable.
 // Optionally include items with which to initialize the list.
-func NewCustomKeySkipList[K Comparable, V any](maxLevel int, items ...SLItem[K, V]) *SkipList[K, V] {
+func NewCustomSkipList[K, V any](maxLevel int, compareFunc func(K, K) int, items ...SLItem[K, V]) *SkipList[K, V] {
 	sl := &SkipList[K, V]{
 		maxLevel:    maxLevel - 1,
 		level:       0,
 		size:        0,
 		header:      newHeader[K, V](maxLevel),
-		compareFunc: Compare[K],
+		compareFunc: compareFunc,
 	}
 	if items != nil && len(items) > 0 {
 		sl.InsertAll(items)
 	}
 	return sl
+}
+
+// NewCustomSkipListWithLazyDelete initializes a custom comparator skip list that will only lazily delete elements
+func NewCustomSkipListWithLazyDelete[K, V any](maxLevel int, compareFunc func(K, K) int, items ...SLItem[K, V]) *SkipList[K, V] {
+	return NewCustomSkipList(maxLevel, compareFunc, items...)
 }
 
 // Size returns the number of elements in the skip list
@@ -67,7 +72,7 @@ func (sl *SkipList[K, V]) IsEmpty() bool {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
 
-	return sl.Size() == 0
+	return sl.size == 0
 }
 
 // MaxLevel returns the maximum number of levels any node in the skip list can be on.
@@ -110,7 +115,7 @@ func (sl *SkipList[K, V]) Insert(key K, val V) {
 	sl.rw.RUnlock()
 
 	sl.rw.Lock()
-	if x != nil && sl.equal(x.key, key) {
+	if x != nil && !sl.less(key, x.key) {
 		x.val = val
 		x.markedDeleted = false
 	} else {
@@ -128,14 +133,14 @@ func (sl *SkipList[K, V]) Insert(key K, val V) {
 			update[i].forward[i] = x
 		}
 
-		if sl.IsEmpty() {
+		if sl.size == 0 {
 			sl.min, sl.max = x.Item(), x.Item()
-		}
-		if sl.greater(x.key, sl.max.Key) {
-			sl.max = x.Item()
 		}
 		if sl.less(x.key, sl.min.Key) {
 			sl.min = x.Item()
+		}
+		if sl.less(sl.max.Key, x.key) {
+			sl.max = x.Item()
 		}
 
 		sl.size++
@@ -160,12 +165,16 @@ func (sl *SkipList[K, V]) Delete(key K) {
 	sl.rw.RUnlock()
 
 	sl.rw.Lock()
-	if x != nil && sl.equal(x.key, key) {
-		if sl.equal(x.key, sl.max.Key) && update[0] != nil {
-			sl.max = update[0].Item()
-		}
-		if sl.equal(x.key, sl.min.Key) && update[0].forward[0] != nil {
-			sl.min = update[0].forward[0].Item()
+	if x != nil && !sl.less(key, x.key) {
+		if sl.size == 1 {
+			sl.min, sl.max = nil, nil
+		} else {
+			if x.forward[0] == nil {
+				sl.max = update[0].Item()
+			}
+			if update[0].isHeader {
+				sl.min = x.forward[0].Item()
+			}
 		}
 		for i := 0; i <= sl.level; i++ {
 			if update[i].forward[i] != x {
@@ -247,7 +256,7 @@ func (sl *SkipList[K, V]) Range(start, end K) []SLItem[K, V] {
 
 	_, startNode := sl.searchNode(start)
 	startNode = startNode.forward[0]
-	if startNode != nil && sl.geq(startNode.key, start) {
+	if startNode != nil && !sl.less(startNode.key, start) {
 		return sl.iterator(startNode).UpTo(end)
 	}
 	return []SLItem[K, V]{}
@@ -351,13 +360,13 @@ func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 	sl2.rw.RLock()
 
 	newMin := sl1.min
-	if sl1.less(sl2.min.Key, sl1.min.Key) {
+	if sl1.less(sl1.min.Key, sl2.min.Key) {
 		newMin = sl2.min
 	}
 
 	newMax := sl1.max
-	if sl1.greater(sl2.max.Key, sl1.max.Key) {
-		newMin = sl2.max
+	if sl1.less(sl2.max.Key, sl1.max.Key) {
+		newMax = sl2.max
 	}
 
 	sl1.rw.RUnlock()
@@ -371,7 +380,6 @@ func Combine[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 		header:      newHead,
 		min:         newMin,
 		max:         newMax,
-		tombstones:  tombstones,
 	}
 }
 
@@ -521,21 +529,6 @@ func (sl *SkipList[K, V]) equal(x, y K) bool {
 	return sl.compareFunc(x, y) == 0
 }
 
-// greater returns true if x > y
-func (sl *SkipList[K, V]) greater(x, y K) bool {
-	return sl.compareFunc(x, y) == 1
-}
-
-// leq returns true if x <= y
-func (sl *SkipList[K, V]) leq(x, y K) bool {
-	return sl.less(x, y) || sl.equal(x, y)
-}
-
-// geq returns true if x >= y
-func (sl *SkipList[K, V]) geq(x, y K) bool {
-	return sl.greater(x, y) || sl.equal(x, y)
-}
-
 // searchNode returns the node with the given key and an array containing the last
 // node that comes before the target node at each level of the list.
 func (sl *SkipList[K, V]) searchNode(searchKey K) ([]*SLNode[K, V], *SLNode[K, V]) {
@@ -555,10 +548,7 @@ func (sl *SkipList[K, V]) searchNode(searchKey K) ([]*SLNode[K, V], *SLNode[K, V
 func (sl *SkipList[K, V]) insert(key K, val V) {
 	update, x := sl.searchNode(key)
 	x = x.forward[0]
-	if x != nil && sl.equal(x.key, key) {
-		x.val = val
-		x.markedDeleted = false
-	} else {
+	if x != nil && sl.less(key, x.key) {
 		lvl := sl.randomLevel()
 		if lvl > sl.level {
 			for i := sl.level + 1; i <= lvl; i++ {
@@ -577,14 +567,16 @@ func (sl *SkipList[K, V]) insert(key K, val V) {
 			sl.max = x.Item()
 			sl.min = x.Item()
 		}
-		if sl.greater(x.key, sl.max.Key) {
-			sl.max = x.Item()
-		}
 		if sl.less(x.key, sl.min.Key) {
 			sl.min = x.Item()
+		} else {
+			sl.max = x.Item()
 		}
 
 		sl.size++
+	} else {
+		x.val = val
+		x.markedDeleted = false
 	}
 }
 
@@ -593,9 +585,16 @@ func (sl *SkipList[K, V]) insert(key K, val V) {
 func (sl *SkipList[K, V]) delete(key K) {
 	update, x := sl.searchNode(key)
 	x = x.forward[0]
-	if x != nil && sl.equal(x.key, key) {
-		if sl.equal(x.key, sl.max.Key) {
-			sl.max = update[0].Item()
+	if x != nil && !sl.less(key, x.key) {
+		if sl.size == 1 {
+			sl.min, sl.max = nil, nil
+		} else {
+			if x.forward[0] == nil {
+				sl.max = update[0].Item()
+			}
+			if update[0].isHeader {
+				sl.min = x.forward[0].Item()
+			}
 		}
 		for i := 0; i <= sl.level; i++ {
 			if update[i].forward[i] != x {

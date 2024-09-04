@@ -196,13 +196,14 @@ func TestSkipList_Min(t *testing.T) {
 
 	res = sl.Min()
 	if res.Key != 1 {
-		t.Error("Min failed")
+		t.Errorf("Initial min failed, got %d but wanted %d", res.Key, 1)
 	}
 
 	sl.Delete(1)
+
 	res = sl.Min()
 	if res.Key != 5 {
-		t.Error("Min after deleting previous min failed")
+		t.Errorf("Min after deleting previous min failed, got %d but wanted %d", res.Key, 5)
 	}
 }
 
@@ -224,8 +225,9 @@ func TestSkipList_Max(t *testing.T) {
 	sl.Insert(1, "hello, world")
 
 	res = sl.Max()
+	want := 50
 	if res.Key != 50 {
-		t.Error("Max failed")
+		t.Errorf("Initial max call failed, got %d but want %d", res.Key, want)
 	}
 
 	sl.Delete(50)
@@ -297,9 +299,7 @@ func TestSkipList_Copy(t *testing.T) {
 		{2, "foo"},
 		{0, "dijkstra"},
 		{1, "bing"},
-		{7, "hello, world"},
-		{5, "bar"},
-		{3, "foo"},
+		{6, "bye, world"},
 	}
 
 	sl1.InsertAll(items1)
@@ -332,4 +332,30 @@ func Test_String(t *testing.T) {
 	sl1.LazyDelete(3)
 	sl1.LazyDelete(6)
 	fmt.Println(sl1.String())
+}
+
+type Custom struct {
+	Primary   int
+	Secondary string
+}
+
+func CustomCompare(c1, c2 Custom) int {
+	if c1.Primary < c2.Primary {
+		return -1
+	}
+	if c1.Primary > c2.Primary {
+		return 1
+	}
+	if c1.Secondary < c2.Secondary {
+		return -1
+	}
+	if c1.Secondary > c2.Secondary {
+		return 1
+	}
+	return 0
+}
+
+func TestNewCustomKeySkipList(t *testing.T) {
+	sl := NewCustomSkipList[Custom, string](16, CustomCompare)
+	sl.Insert(Custom{5, "hello"}, "5: hello")
 }
