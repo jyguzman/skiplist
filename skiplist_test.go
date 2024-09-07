@@ -7,12 +7,8 @@ import (
 	"time"
 )
 
-func AsserEqual[K, V comparable](t *testing.T, message string, a ...K) {
-
-}
-
 func TestSkipList_Insert(t *testing.T) {
-	sl := NewSkipList[int, string](16)
+	sl := NewSkipList[int, string]()
 
 	sl.Insert(2, "hello, world")
 	sl.Insert(0, "bar")
@@ -38,13 +34,13 @@ func TestSkipList_Insert(t *testing.T) {
 }
 
 func TestSkipList_InsertExistingKey(t *testing.T) {
-	sl := NewSkipList[int, string](16)
+	sl := NewSkipList[int, string]()
 
 	want := "bye, world"
 	sl.Insert(2, "hello, world")
 	sl.Insert(2, want)
 
-	val, ok := sl.Search(2)
+	val, ok := sl.Get(2)
 	if !ok {
 		t.Errorf("test insert exisiting: search fail")
 	}
@@ -55,7 +51,7 @@ func TestSkipList_InsertExistingKey(t *testing.T) {
 }
 
 func TestSkipList_Search(t *testing.T) {
-	sl := NewSkipList[int, string](16)
+	sl := NewSkipList[int, string]()
 
 	items := []SLItem[int, string]{
 		{5, "hello, world"},
@@ -70,7 +66,7 @@ func TestSkipList_Search(t *testing.T) {
 	}
 
 	for _, item := range items {
-		val, ok := sl.Search(item.Key)
+		val, ok := sl.Get(item.Key)
 		if !ok {
 			t.Errorf("search: key %d not found", item.Key)
 		}
@@ -79,14 +75,14 @@ func TestSkipList_Search(t *testing.T) {
 		}
 	}
 
-	_, ok := sl.Search(-10)
+	_, ok := sl.Get(-10)
 	if ok {
 		t.Errorf("search: uninserted key %d found", -10)
 	}
 }
 
 func TestSkipList_Delete(t *testing.T) {
-	sl := NewSkipList[int, string](16)
+	sl := NewSkipList[int, string]()
 
 	items := []SLItem[int, string]{
 		{5, "hello, world"},
@@ -100,15 +96,28 @@ func TestSkipList_Delete(t *testing.T) {
 		sl.Insert(item.Key, item.Val)
 	}
 
-	sl.Delete(-5)
-	sl.Delete(2)
+	val, ok := sl.Delete(-5)
+	if !ok {
+		t.Errorf("delete: fail for key -5")
+	}
+	if val != "beefcafe" {
+		t.Errorf("delete: want value: %v, got value: %v", "beefcafe", val)
+	}
 
-	_, ok := sl.Search(-5)
+	val, ok = sl.Delete(2)
+	if !ok {
+		t.Errorf("delete: fail for key 2")
+	}
+	if val != "bar" {
+		t.Errorf("delete: want value: %v, got value: %v", "bar", val)
+	}
+
+	_, ok = sl.Get(-5)
 	if ok {
 		t.Errorf("testing delete: deleted key %d found", -5)
 	}
 
-	_, ok = sl.Search(2)
+	_, ok = sl.Get(2)
 	if ok {
 		t.Errorf("testing delete: deleted key %d found", 2)
 	}
@@ -123,25 +132,25 @@ func TestSkipList_Delete(t *testing.T) {
 	}
 }
 
-func TestSkipList_Range(t *testing.T) {
-	sl := NewSkipList[int, string](16)
-
-	sl.Insert(10, "ten")
-	sl.Insert(20, "twenty")
-	sl.Insert(40, "forty")
-	sl.Insert(50, "fifty")
-	sl.Insert(8, "eight")
-	sl.Insert(5, "five")
-	sl.Insert(30, "thirty")
-	sl.Insert(1, "hello, world")
-
-	res := sl.Range(5, 40)
-	fmt.Println(res)
-
-}
+//func TestSkipList_Range(t *testing.T) {
+//	sl := NewSkipList[int, string]()
+//
+//	sl.Insert(10, "ten")
+//	sl.Insert(20, "twenty")
+//	sl.Insert(40, "forty")
+//	sl.Insert(50, "fifty")
+//	sl.Insert(8, "eight")
+//	sl.Insert(5, "five")
+//	sl.Insert(30, "thirty")
+//	sl.Insert(1, "hello, world")
+//
+//	res := sl.Range(5, 40)
+//	fmt.Println(res)
+//
+//}
 
 func TestSkipList_Min(t *testing.T) {
-	sl := NewSkipList[int, string](16)
+	sl := NewSkipList[int, string]()
 
 	res := sl.Min()
 	if res != nil {
@@ -171,7 +180,7 @@ func TestSkipList_Min(t *testing.T) {
 }
 
 func TestSkipList_Max(t *testing.T) {
-	sl := NewSkipList[int, string](16)
+	sl := NewSkipList[int, string]()
 
 	res := sl.Max()
 	if res != nil {
@@ -200,34 +209,9 @@ func TestSkipList_Max(t *testing.T) {
 	}
 }
 
-func TestSkipList_ToArray(t *testing.T) {
-	sl := NewSkipList[int, string](16)
-
-	items := []SLItem[int, string]{
-		{5, "hello, world"},
-		{2, "bar"},
-		{0, "foo"},
-		{-5, "beefcafe"},
-		{10, "dijkstra"},
-	}
-
-	sl.InsertAll(items)
-
-	want := []SLItem[int, string]{
-		{-5, "beefcafe"}, {0, "foo"},
-		{2, "bar"}, {5, "hello, world"},
-		{10, "dijkstra"},
-	}
-
-	res := sl.ToArray()
-	if !slices.Equal(res, want) {
-		t.Errorf("want %v, got %v", want, res)
-	}
-}
-
-func TestSkipList_Combine(t *testing.T) {
-	sl1 := NewSkipList[int, string](16)
-	sl2 := NewSkipList[int, string](16)
+func TestSkipList_Merge(t *testing.T) {
+	sl1 := NewSkipList[int, string]()
+	sl2 := NewSkipList[int, string]()
 
 	items1 := []SLItem[int, string]{
 		{6, "hello, world"},
@@ -249,55 +233,33 @@ func TestSkipList_Combine(t *testing.T) {
 	sl1.InsertAll(items1)
 	sl2.InsertAll(items2)
 
-	res := Combine(sl1, sl2)
+	res := Merge(sl1, sl2)
 	fmt.Println(res)
 	fmt.Println(res.size)
 }
 
-func TestSkipList_Copy(t *testing.T) {
-	sl1 := NewSkipList[int, string](16)
-
-	items1 := []SLItem[int, string]{
-		{6, "hello, world"},
-		{4, "bar"},
-		{2, "foo"},
-		{0, "dijkstra"},
-		{1, "bing"},
-		{6, "bye, world"},
-	}
-
-	sl1.InsertAll(items1)
-
-	fmt.Println("sl1:")
-	fmt.Println(sl1)
-
-	fmt.Println("copy:")
-	c := sl1.Copy()
-	fmt.Println(c)
-}
-
-func Test_String(t *testing.T) {
-	sl1 := NewSkipList[int, string](16)
-
-	items1 := []SLItem[int, string]{
-		{6, "hello, world"},
-		{4, "bar"},
-		{2, "foo"},
-		{0, "dijkstra"},
-		{1, "one"},
-		{5, "five"},
-		{3, "beefcafe"},
-	}
-
-	sl1.InsertAll(items1)
-	fmt.Println(sl1.String())
-}
-
 func TestNewCustomKeySkipList(t *testing.T) {
-	sl := NewCustomSkipList[time.Time, string](16, func(t1 time.Time, t2 time.Time) bool {
+	sl := NewCustomSkipList[time.Time, string](func(t1 time.Time, t2 time.Time) bool {
 		return t1.Before(t2)
 	})
-	sl.Insert(time.Now(), "hello, world")
-	sl.Insert(time.Now().Add(5), "bye, world")
-	fmt.Println(sl)
+	k1 := time.Now()
+	k2 := k1.Add(10)
+	sl.Insert(k1, "hello, world")
+	sl.Insert(k2, "bye, world")
+
+	val, ok := sl.Get(k1)
+	if !ok {
+		t.Errorf("key %v not found", k1.String())
+	}
+	if val != "hello, world" {
+		t.Errorf("wanted val %s but got %s", "hello, world", val)
+	}
+
+	val, ok = sl.Delete(k2)
+	if !ok {
+		t.Errorf("key %v not found", k2.String())
+	}
+	if val != "bye, world" {
+		t.Errorf("wanted val %s but got %s", "bye, world", val)
+	}
 }

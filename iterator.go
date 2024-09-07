@@ -1,66 +1,86 @@
 package skiplist
 
-type Iterator[K, V any] struct {
-	less func(K, K) bool
-	curr *SLNode[K, V]
+type iter[K, V any] struct {
+	lessThan func(K, K) bool
+	curr     *SLNode[K, V]
+	seen     []*SLNode[K, V]
+	seenIdx  int
+	end      *K
 }
 
-func (it *Iterator[K, V]) Next() *SLItem[K, V] {
-	defer it.advance()
-	if it.HasNext() {
-		return it.curr.Item()
+type Iterator[K, V any] interface {
+	Next() bool
+	Prev() bool
+	Key() K
+	Value() V
+	All() []SLItem[K, V] // returns an array of all key-value pairs covered by this iterator
+}
+
+func (it *iter[K, V]) hasNext() bool {
+	if it.curr.forward[0] == nil {
+		return false
 	}
-	return nil
+	if it.end != nil {
+		return it.lessThan(it.curr.forward[0].key, *it.end)
+	}
+	return true
 }
 
-func (it *Iterator[K, V]) Key() K {
+func (it *iter[K, V]) Next() bool {
+	if it.seenIdx < len(it.seen)-1 {
+		it.seenIdx++
+		it.curr = it.seen[it.seenIdx]
+		return true
+	}
+	if it.hasNext() {
+		it.curr = it.curr.forward[0]
+		it.seenIdx++
+		if it.seenIdx >= len(it.seen) {
+			it.seen = append(it.seen, it.curr)
+		}
+		return true
+	}
+	return false
+}
+
+func (it *iter[K, V]) Prev() bool {
+	it.seenIdx--
+	if it.seenIdx >= 0 {
+		it.curr = it.seen[it.seenIdx]
+		return true
+	} else {
+		it.seenIdx = 0
+	}
+	return false
+}
+
+func (it *iter[K, V]) Key() K {
 	var key K
-	if it.HasNext() {
-		key = it.curr.Item().Key
+	if it.curr != nil {
+		key = it.curr.key
 	}
 	return key
 }
 
-func (it *Iterator[K, V]) Value() V {
+func (it *iter[K, V]) Value() V {
 	var val V
-	if it.HasNext() {
-		val = it.curr.Item().Val
+	if it.curr != nil {
+		val = it.curr.val
 	}
 	return val
 }
 
-func (it *Iterator[K, V]) next() *SLNode[K, V] {
-	defer it.advance()
-	if it.HasNext() {
-		return it.curr
+// All returns an array of the key-value pairs covered by this iterator
+func (it *iter[K, V]) All() []SLItem[K, V] {
+	pairs := make([]SLItem[K, V], len(it.seen))
+	for i, node := range it.seen {
+		pairs[i] = *node.Item()
 	}
-	return nil
-}
-
-func (it *Iterator[K, V]) HasNext() bool {
-	return it.curr != nil
-}
-
-func (it *Iterator[K, V]) All() []SLItem[K, V] {
-	var results []SLItem[K, V]
-	for it.HasNext() {
-		results = append(results, *it.curr.Item())
-		it.advance()
+	originalIdx := it.seenIdx
+	it.seenIdx = len(it.seen) - 1
+	for it.Next() {
+		pairs = append(pairs, *it.curr.Item())
 	}
-	return results
-}
-
-func (it *Iterator[K, V]) advance() {
-	if it.curr != nil {
-		it.curr = it.curr.forward[0]
-	}
-}
-
-func (it *Iterator[K, V]) UpTo(stop K) []SLItem[K, V] {
-	var results []SLItem[K, V]
-	for it.HasNext() && it.less(it.curr.key, stop) {
-		results = append(results, *it.curr.Item())
-		it.advance()
-	}
-	return results
+	it.seenIdx = originalIdx
+	return pairs
 }

@@ -1,89 +1,101 @@
 package skiplist
 
 import (
-	"slices"
 	"testing"
 )
 
 func TestIterator_Next(t *testing.T) {
-	sl := NewSkipList[int, string](16)
-
 	items := []SLItem[int, string]{
-		{5, "hello, world"},
-		{2, "bar"},
-		{0, "foo"},
-		{-5, "beefcafe"},
-	}
-
-	sorted := []SLItem[int, string]{
 		{-5, "beefcafe"},
 		{0, "foo"},
+		{1, "bar"},
 		{2, "bar"},
-		{5, "hello, world"},
+		{4, "bing"},
+		{7, "bong"},
+		{8, "hello, world"},
 	}
 
-	for _, item := range items {
-		sl.Insert(item.Key, item.Val)
-	}
+	sl := NewSkipList(items...)
 
 	it := sl.Iterator()
-	for i := range sorted {
-		next := it.Next()
-		if next.Key != sorted[i].Key || next.Val != sorted[i].Val {
-			t.Errorf("iterator next: got %v, want %v", next.Key, sorted[i].Key)
+	i := 0
+	for it.Next() {
+		key, val := it.Key(), it.Value()
+		if key != items[i].Key {
+			t.Errorf("key mismatch, expected %v, got %v", items[i].Key, key)
+		}
+		if val != items[i].Val {
+			t.Errorf("val mismatch, expected %v, got %v", items[i].Val, val)
+		}
+		i++
+	}
+}
+
+func TestIterator_Prev(t *testing.T) {
+	items := []SLItem[int, string]{
+		{-5, "beefcafe"},
+		{0, "foo"},
+		{1, "bar"},
+		{2, "bar"},
+		{4, "bing"},
+		{7, "bong"},
+		{8, "hello, world"},
+	}
+
+	sl := NewSkipList(items...)
+
+	it := sl.Iterator()
+	for it.Next() {
+	}
+
+	key, val := it.Key(), it.Value()
+	i := len(items) - 1
+	if key != items[i].Key {
+		t.Errorf("key mismatch, expected %v, got %v", items[i].Key, key)
+	}
+	if val != items[i].Val {
+		t.Errorf("val mismatch, expected %v, got %v", items[i].Val, val)
+	}
+	for it.Prev() {
+		i--
+		key, val = it.Key(), it.Value()
+		if key != items[i].Key {
+			t.Errorf("key mismatch, expected %v, got %v", items[i].Key, key)
+		}
+		if val != items[i].Val {
+			t.Errorf("val mismatch, expected %v, got %v", items[i].Val, val)
 		}
 	}
 }
 
-func TestIterator_All(t *testing.T) {
-	sl := NewSkipList[int, string](16)
-
+func TestIterator_Range(t *testing.T) {
 	items := []SLItem[int, string]{
-		{5, "hello, world"},
-		{2, "bar"},
-		{0, "foo"},
 		{-5, "beefcafe"},
-		{10, "dijkstra"},
-	}
-
-	for _, item := range items {
-		sl.Insert(item.Key, item.Val)
-	}
-
-	want := []SLItem[int, string]{
-		{-5, "beefcafe"}, {0, "foo"},
-		{2, "bar"}, {5, "hello, world"},
-		{10, "dijkstra"},
-	}
-
-	res := sl.Iterator().All()
-	if !slices.Equal(res, want) {
-		t.Errorf("All: got %v\n want %v", res, want)
-	}
-}
-
-func TestIterator_UpTo(t *testing.T) {
-	sl := NewSkipList[int, string](16)
-
-	items := []SLItem[int, string]{
-		{5, "hello, world"},
-		{2, "bar"},
 		{0, "foo"},
-		{-5, "beefcafe"},
-		{10, "dijkstra"},
-	}
-
-	for _, item := range items {
-		sl.Insert(item.Key, item.Val)
-	}
-
-	want := []SLItem[int, string]{
-		{-5, "beefcafe"}, {0, "foo"},
+		{1, "bar"},
 		{2, "bar"},
+		{4, "bing"},
+		{7, "bong"},
+		{8, "hello, world"},
 	}
 
-	res := sl.Iterator().UpTo(2)
-	if !slices.Equal(res, want) {
-		t.Errorf("All: got %v\n want %v", res, want)
+	sl := NewSkipList(items...)
+
+	it := sl.Range(0, 7)
+	i := 1
+	for it.Next() {
+		key, val := it.Key(), it.Value()
+		if key != items[i].Key {
+			t.Errorf("key mismatch, expected %v, got %v", items[i].Key, key)
+		}
+		if val != items[i].Val {
+			t.Errorf("val mismatch, expected %v, got %v", items[i].Val, val)
+		}
+		i++
+	}
+
+	ok := it.Next()
+	if ok != false {
+		t.Errorf("range: expected false but got %v", ok)
 	}
 }

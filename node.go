@@ -2,7 +2,6 @@ package skiplist
 
 import (
 	"fmt"
-	"sync"
 )
 
 // SLItem a key-value pair in the skip list
@@ -11,7 +10,7 @@ type SLItem[K, V any] struct {
 	Val V
 }
 
-func (sn *SLItem[K, V]) String() string {
+func (sn SLItem[K, V]) String() string {
 	return fmt.Sprintf("Item{K: %v, V: %v}", sn.Key, sn.Val)
 }
 
@@ -21,7 +20,6 @@ func NewItem[K, V any](key K, val V) SLItem[K, V] {
 
 // SLNode a node in the skip list that contains a key, value, and list of forward pointers
 type SLNode[K, V any] struct {
-	m        sync.RWMutex
 	key      K
 	val      V
 	isHeader bool
@@ -40,22 +38,6 @@ func (sn *SLNode[K, V]) String() string {
 // Item returns the key-value pair from this node
 func (sn *SLNode[K, V]) Item() *SLItem[K, V] {
 	return &SLItem[K, V]{sn.key, sn.val}
-}
-
-func (sn *SLNode[K, V]) rLock() {
-	sn.m.RLock()
-}
-
-func (sn *SLNode[K, V]) rUnlock() {
-	sn.m.RUnlock()
-}
-
-func (sn *SLNode[K, V]) lock() {
-	sn.m.Lock()
-}
-
-func (sn *SLNode[K, V]) unlock() {
-	sn.m.Unlock()
 }
 
 func newHeader[K, V any](maxLevel int) *SLNode[K, V] {
