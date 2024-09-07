@@ -101,6 +101,7 @@ func (sl *SkipList[K, V]) Max() *SLItem[K, V] {
 // the new max level will instead be that node's level.
 func (sl *SkipList[K, V]) SetMaxLevel(newMaxLevel int) {
 	sl.rw.RLock()
+
 	if newMaxLevel < 0 {
 		newMaxLevel = 0
 	}
@@ -115,6 +116,7 @@ func (sl *SkipList[K, V]) SetMaxLevel(newMaxLevel int) {
 		sl.header.forward = append(sl.header.forward, nil)
 	}
 	sl.maxLevel = newMaxLevel
+
 	sl.rw.RUnlock()
 }
 
@@ -327,6 +329,16 @@ func Merge[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 		newMaxLevel = sl2.maxLevel
 	}
 
+	newMin := sl1.min
+	if sl1.lessThan(sl1.min.Key, sl2.min.Key) {
+		newMin = sl2.min
+	}
+
+	newMax := sl1.max
+	if sl1.lessThan(sl2.max.Key, sl1.max.Key) {
+		newMax = sl2.max
+	}
+
 	p1, p2 := sl1.header.forward[0], sl2.header.forward[0]
 
 	newHead := newHeader[K, V](newMaxLevel)
@@ -392,22 +404,6 @@ func Merge[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 
 	sl1.rw.Unlock()
 	sl2.rw.Unlock()
-
-	sl1.rw.RLock()
-	sl2.rw.RLock()
-
-	newMin := sl1.min
-	if sl1.lessThan(sl1.min.Key, sl2.min.Key) {
-		newMin = sl2.min
-	}
-
-	newMax := sl1.max
-	if sl1.lessThan(sl2.max.Key, sl1.max.Key) {
-		newMax = sl2.max
-	}
-
-	sl1.rw.RUnlock()
-	sl2.rw.RUnlock()
 
 	return &SkipList[K, V]{
 		maxLevel: newMaxLevel,
