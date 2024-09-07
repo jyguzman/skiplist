@@ -234,7 +234,8 @@ func (sl *SkipList[K, V]) Get(key K) (V, bool) {
 	return val, false
 }
 
-// Range returns an iterator beginning at node with key start (inclusive) to key end (exclusive).
+// Range returns an iterator beginning at node with key start (inclusive) to
+// node with key end (exclusive).
 func (sl *SkipList[K, V]) Range(start, end K) Iterator[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
@@ -338,10 +339,12 @@ func Merge[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 
 	for p1 != nil && p2 != nil {
 		k1, k2 := p1.key, p2.key
+
 		level := randomLevel(newMaxLevel)
 		if level > newLevel {
 			newLevel = level
 		}
+
 		var node *SLNode[K, V]
 		if sl1.lessThan(k1, k2) {
 			newSize++
@@ -365,25 +368,25 @@ func Merge[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 
 	for p1 != nil {
 		level := randomLevel(newMaxLevel)
-		newSize++
 		node := newNode[K, V](level, p1.key, p1.val)
 		for i := 0; i <= level; i++ {
 			node.forward[i] = previous[i].forward[i]
 			previous[i].forward[i] = node
 			previous[i] = node
 		}
+		newSize++
 		p1 = p1.forward[0]
 	}
 
 	for p2 != nil {
 		level := randomLevel(newMaxLevel)
-		newSize++
 		node := newNode[K, V](level, p2.key, p2.val)
 		for i := 0; i <= level; i++ {
 			node.forward[i] = previous[i].forward[i]
 			previous[i].forward[i] = node
 			previous[i] = node
 		}
+		newSize++
 		p2 = p2.forward[0]
 	}
 
