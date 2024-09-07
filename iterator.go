@@ -1,19 +1,31 @@
 package skiplist
 
+// Iterator is a snapshot iterator over the nodes of a skip list
+type Iterator[K, V any] interface {
+	// Next returns true if there are further nodes over which to iterate and
+	// advances the iterator if there are
+	Next() bool
+
+	// Prev returns true if there are previous elements over which to iterate
+	// and rewinds to the previous node if possible
+	Prev() bool
+
+	// Key returns the current key
+	Key() K
+
+	// Value returns the current value
+	Value() V
+
+	// All returns an array of all key-value pairs covered by this iterator
+	All() []SLItem[K, V]
+}
+
 type iter[K, V any] struct {
 	lessThan func(K, K) bool
 	curr     *SLNode[K, V]
 	seen     []*SLNode[K, V]
 	seenIdx  int
 	end      *K
-}
-
-type Iterator[K, V any] interface {
-	Next() bool
-	Prev() bool
-	Key() K
-	Value() V
-	All() []SLItem[K, V] // returns an array of all key-value pairs covered by this iterator
 }
 
 func (it *iter[K, V]) hasNext() bool {

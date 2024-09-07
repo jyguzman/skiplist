@@ -318,8 +318,8 @@ func (sl *SkipList[K, V]) String() string {
 // Merge returns a new skip list with the elements from both lists. For any keys that are
 // in both of the lists, the result will use the value from the second list.
 // The maxLevel of the result will be the greater maxLevel of the inputs.
-// Tombstones will be combined. The min of the result will be the  smaller min
-// of the inputs, and the max will be the greater max from the inputs.
+// The min of the result will be the smaller min  of the inputs, and the max
+// will be the greater max from the inputs.
 func Merge[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 	sl1.rw.Lock()
 	sl2.rw.Lock()
@@ -506,7 +506,7 @@ func (sl *SkipList[K, V]) delete(key K) {
 	}
 }
 
-// iterator returns an Iter beginning at the given node
+// iterator returns an Iterator beginning at the given node
 func (sl *SkipList[K, V]) iterator(start *SLNode[K, V], endKey *K) Iterator[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
@@ -514,5 +514,11 @@ func (sl *SkipList[K, V]) iterator(start *SLNode[K, V], endKey *K) Iterator[K, V
 	var v V
 	dummy := newNode[K, V](1, k, v)
 	dummy.forward[0] = start
-	return &iter[K, V]{lessThan: sl.lessThan, curr: dummy, seen: make([]*SLNode[K, V], 0), seenIdx: -1, end: endKey}
+	return &iter[K, V]{
+		lessThan: sl.lessThan,
+		curr:     dummy,
+		seen:     make([]*SLNode[K, V], 0),
+		seenIdx:  -1,
+		end:      endKey,
+	}
 }
