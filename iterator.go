@@ -16,12 +16,13 @@ type Iterator[K, V any] interface {
 	// Value returns the current value
 	Value() V
 
-	// All returns an array of all key-value pairs covered by this iterator
+	// All returns an array of all key-value pairs covered by this iterator.
 	All() []SLItem[K, V]
 }
 
 type iter[K, V any] struct {
 	lessThan    func(K, K) bool
+	start       *SLNode[K, V]
 	curr        *SLNode[K, V]
 	rangeEndKey *K
 }
@@ -68,18 +69,13 @@ func (it *iter[K, V]) Value() V {
 	return val
 }
 
-// All returns an array of the key-value pairs covered by this iterator
 func (it *iter[K, V]) All() []SLItem[K, V] {
-	//pairs := make([]SLItem[K, V], len(it.seen))
-	//for i, node := range it.seen {
-	//	pairs[i] = *node.Item()
-	//}
-	//originalIdx := it.seenIdx
-	//it.seenIdx = len(it.seen) - 1
-	//for it.Next() {
-	//	pairs = append(pairs, *it.curr.Item())
-	//}
-	//it.seenIdx = originalIdx
-	//return pairs
-	return nil
+	curr := it.curr
+	it.curr = it.start
+	var pairs []SLItem[K, V]
+	for it.Next() {
+		pairs = append(pairs, *it.curr.Item())
+	}
+	it.curr = curr
+	return pairs
 }

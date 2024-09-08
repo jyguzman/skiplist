@@ -20,7 +20,7 @@ type SkipList[K, V any] struct {
 	lessThan func(K, K) bool // function used to compare keys
 	header   *SLNode[K, V]   // the header node
 	min      *SLItem[K, V]   // the element with the minimum key
-	max      *SLNode[K, V]   // the element with the maximum key
+	max      *SLNode[K, V]   // the node with the maximum key
 }
 
 // NewSkipList initializes a skip list using a cmp.Ordered key type and with a default max level of 32.
@@ -523,8 +523,10 @@ func (sl *SkipList[K, V]) delete(key K) {
 func (sl *SkipList[K, V]) iterator(start *SLNode[K, V], endKey *K) Iterator[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
+	
 	return &iter[K, V]{
 		lessThan:    sl.lessThan,
+		start:       start,
 		curr:        start,
 		rangeEndKey: endKey,
 	}
