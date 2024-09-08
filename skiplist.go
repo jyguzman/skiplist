@@ -255,14 +255,27 @@ func (sl *SkipList[K, V]) Range(start, end K) Iterator[K, V] {
 	return nil
 }
 
-// Iterator returns a snapshot iterator over the skip list.
+// Iterator returns an iterator over the skip list.
 func (sl *SkipList[K, V]) Iterator() Iterator[K, V] {
 	return sl.iterator(sl.header, nil)
 }
 
-// IteratorFromEnd returns a snapshot iterator starting from the end of the skip list.
+// IteratorFromEnd returns an iterator starting from the end of the skip list.
 func (sl *SkipList[K, V]) IteratorFromEnd() Iterator[K, V] {
 	return sl.iterator(sl.max, nil)
+}
+
+// IteratorFrom returns an iterator starting from the first node with key equal to or greater than start.
+func (sl *SkipList[K, V]) IteratorFrom(start K) Iterator[K, V] {
+	sl.rw.RLock()
+	defer sl.rw.RUnlock()
+
+	update, startNode := sl.searchNode(start)
+	startNode = startNode.forward[0]
+	if startNode != nil && !sl.lessThan(startNode.key, start) {
+		return sl.iterator(update[0], nil)
+	}
+	return nil
 }
 
 // Clear removes all elements from the skip list
@@ -523,7 +536,7 @@ func (sl *SkipList[K, V]) delete(key K) {
 func (sl *SkipList[K, V]) iterator(start *SLNode[K, V], endKey *K) Iterator[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
-	
+
 	return &iter[K, V]{
 		lessThan:    sl.lessThan,
 		start:       start,
