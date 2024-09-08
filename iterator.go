@@ -1,6 +1,6 @@
 package skiplist
 
-// Iterator is a snapshot iterator over the nodes of a skip list
+// Iterator is a bidirectional iterator over the skip list.
 type Iterator[K, V any] interface {
 	// Next returns true if there are further nodes over which to iterate and
 	// advances the iterator if there are

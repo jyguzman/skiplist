@@ -19,8 +19,7 @@ type SkipList[K, V any] struct {
 	size     int             // the current number of elements
 	lessThan func(K, K) bool // function used to compare keys
 	header   *SLNode[K, V]   // the header node
-	min      *SLItem[K, V]   // the element with the minimum key
-	max      *SLNode[K, V]   // the node with the maximum key
+	max      *SLNode[K, V]   // the node with the maximum key, or the "end" of the list
 }
 
 // NewSkipList initializes a skip list using a cmp.Ordered key type and with a default max level of 32.
@@ -85,7 +84,10 @@ func (sl *SkipList[K, V]) Min() *SLItem[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
 
-	return sl.min
+	if sl.header.forward[0] != nil {
+		return sl.header.forward[0].Item()
+	}
+	return nil
 }
 
 // Max returns the element with the maximum key.
@@ -154,10 +156,7 @@ func (sl *SkipList[K, V]) Insert(key K, val V) bool {
 	x.backward = update[0]
 
 	if sl.size == 0 {
-		sl.min, sl.max = x.Item(), x
-	}
-	if sl.lessThan(x.key, sl.min.Key) {
-		sl.min = x.Item()
+		sl.max = x
 	}
 	if sl.lessThan(sl.max.key, x.key) {
 		sl.max = x
@@ -190,13 +189,10 @@ func (sl *SkipList[K, V]) Delete(key K) (V, bool) {
 	var val V
 	if x != nil && !sl.lessThan(key, x.key) {
 		if sl.size == 1 {
-			sl.min, sl.max = nil, nil
+			sl.max = nil
 		} else {
 			if x.forward[0] == nil {
 				sl.max = update[0]
-			}
-			if update[0].isHeader {
-				sl.min = x.forward[0].Item()
 			}
 		}
 		for i := 0; i <= sl.level; i++ {
@@ -255,17 +251,19 @@ func (sl *SkipList[K, V]) Range(start, end K) Iterator[K, V] {
 	return nil
 }
 
-// Iterator returns an iterator over the skip list.
+// Iterator returns a bidirectional iterator over the skip list if there are elements, or nil if not.
 func (sl *SkipList[K, V]) Iterator() Iterator[K, V] {
 	return sl.iterator(sl.header, nil)
 }
 
-// IteratorFromEnd returns an iterator starting from the end of the skip list.
+// IteratorFromEnd returns a bidirectional iterator starting from the end of the skip list, or nil if
+// the list isn't populated.
 func (sl *SkipList[K, V]) IteratorFromEnd() Iterator[K, V] {
 	return sl.iterator(sl.max, nil)
 }
 
-// IteratorFrom returns an iterator starting from the first node with key equal to or greater than start.
+// IteratorFrom returns a bidirectional iterator starting from the first node with key equal to
+// or greater than start, or nil if the list isn't populated.
 func (sl *SkipList[K, V]) IteratorFrom(start K) Iterator[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
@@ -285,7 +283,6 @@ func (sl *SkipList[K, V]) Clear() {
 	sl.size = 0
 	sl.level = 0
 	sl.max = nil
-	sl.min = nil
 	sl.header = newHeader[K, V](sl.maxLevel)
 
 	sl.rw.Unlock()
@@ -350,11 +347,6 @@ func Merge[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 	newMaxLevel := sl1.maxLevel
 	if sl2.maxLevel > newMaxLevel {
 		newMaxLevel = sl2.maxLevel
-	}
-
-	newMin := sl1.min
-	if sl1.lessThan(sl1.min.Key, sl2.min.Key) {
-		newMin = sl2.min
 	}
 
 	newMax := sl1.max
@@ -434,7 +426,6 @@ func Merge[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 		size:     newSize,
 		lessThan: sl1.lessThan,
 		header:   newHead,
-		min:      newMin,
 		max:      newMax,
 	}
 }
@@ -487,10 +478,7 @@ func (sl *SkipList[K, V]) insert(key K, val V) {
 		x.backward = update[0]
 
 		if sl.size == 0 {
-			sl.min, sl.max = x.Item(), x
-		}
-		if sl.lessThan(x.key, sl.min.Key) {
-			sl.min = x.Item()
+			sl.max = x
 		}
 		if sl.lessThan(sl.max.key, x.key) {
 			sl.max = x
@@ -507,13 +495,10 @@ func (sl *SkipList[K, V]) delete(key K) {
 	x = x.forward[0]
 	if x != nil && !sl.lessThan(key, x.key) {
 		if sl.size == 1 {
-			sl.min, sl.max = nil, nil
+			sl.max = nil
 		} else {
 			if x.forward[0] == nil {
 				sl.max = update[0]
-			}
-			if update[0].isHeader {
-				sl.min = x.forward[0].Item()
 			}
 		}
 		for i := 0; i <= sl.level; i++ {

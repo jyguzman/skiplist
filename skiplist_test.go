@@ -236,6 +236,7 @@ func TestSkipList_Merge(t *testing.T) {
 	res := Merge(sl1, sl2)
 	fmt.Println(res)
 	fmt.Println(res.size)
+	fmt.Println(res.Min())
 }
 
 func TestNewCustomKeySkipList(t *testing.T) {
