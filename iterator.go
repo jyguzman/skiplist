@@ -54,19 +54,11 @@ func (it *iter[K, V]) Prev() bool {
 }
 
 func (it *iter[K, V]) Key() K {
-	var key K
-	if it.curr != nil {
-		key = it.curr.key
-	}
-	return key
+	return it.curr.key
 }
 
 func (it *iter[K, V]) Value() V {
-	var val V
-	if it.curr != nil {
-		val = it.curr.val
-	}
-	return val
+	return it.curr.val
 }
 
 func (it *iter[K, V]) All() []SLItem[K, V] {

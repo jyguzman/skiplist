@@ -19,7 +19,7 @@ type SkipList[K, V any] struct {
 	size     int             // the current number of elements
 	lessThan func(K, K) bool // function used to compare keys
 	header   *SLNode[K, V]   // the header node
-	max      *SLNode[K, V]   // the node with the maximum key, or the "end"/"back" of the list
+	max      *SLNode[K, V]   // the node with the maximum key, which can also be considered the "end" or "back" of the list
 }
 
 // NewSkipList initializes a skip list using a cmp.Ordered key type and with a default max level of 32.
@@ -125,7 +125,7 @@ func (sl *SkipList[K, V]) SetMaxLevel(newMaxLevel int) {
 	sl.rw.RUnlock()
 }
 
-// Set inserts or updates a key-value pair in the skip list. It returns true if a new key was added, false otherwise
+// Set inserts or updates a key-value pair in the skip list. It returns true if a new key was inserted, false otherwise
 func (sl *SkipList[K, V]) Set(key K, val V) bool {
 	sl.rw.RLock()
 	update, x := sl.searchNode(key)
@@ -155,10 +155,7 @@ func (sl *SkipList[K, V]) Set(key K, val V) bool {
 	}
 	x.backward = update[0]
 
-	if sl.size == 0 {
-		sl.max = x
-	}
-	if sl.lessThan(sl.max.key, x.key) {
+	if sl.max == nil || sl.lessThan(sl.max.key, x.key) {
 		sl.max = x
 	}
 
@@ -478,10 +475,7 @@ func (sl *SkipList[K, V]) insert(key K, val V) {
 		}
 		x.backward = update[0]
 
-		if sl.size == 0 {
-			sl.max = x
-		}
-		if sl.lessThan(sl.max.key, x.key) {
+		if sl.max == nil || sl.lessThan(sl.max.key, x.key) {
 			sl.max = x
 		}
 
@@ -518,7 +512,8 @@ func (sl *SkipList[K, V]) delete(key K) {
 	}
 }
 
-// iterator returns an Iterator beginning at the given node
+// iterator returns an Iterator beginning at the given node and ending at node with the given endKey (exclusive).
+// If endKey is nil, the iterator goes until the end of the list
 func (sl *SkipList[K, V]) iterator(start *SLNode[K, V], endKey *K) Iterator[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
