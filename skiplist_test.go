@@ -217,9 +217,9 @@ func TestSkipList_Merge(t *testing.T) {
 		{6, "hello, world"},
 		{4, "bar"},
 		{2, "foo"},
+		{7, "bye, world"},
 		{0, "dijkstra"},
 		{1, "bing"},
-		{7, "bye, world"},
 	}
 
 	items2 := []SLItem[int, string]{
@@ -236,7 +236,7 @@ func TestSkipList_Merge(t *testing.T) {
 	res := Merge(sl1, sl2)
 	fmt.Println(res)
 	fmt.Println(res.size)
-	fmt.Println(res.Min())
+	fmt.Println(res.Min(), res.Max())
 }
 
 func TestNewCustomKeySkipList(t *testing.T) {

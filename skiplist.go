@@ -350,7 +350,7 @@ func Merge[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 	}
 
 	newMax := sl1.max
-	if sl1.lessThan(sl2.max.key, sl1.max.key) {
+	if sl1.lessThan(sl1.max.key, sl2.max.key) {
 		newMax = sl2.max
 	}
 
