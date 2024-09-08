@@ -33,7 +33,7 @@ func NewSkipList[K cmp.Ordered, V any](items ...SLItem[K, V]) *SkipList[K, V] {
 		lessThan: func(k1, k2 K) bool { return cmp.Compare[K](k1, k2) == -1 },
 	}
 	if items != nil && len(items) > 0 {
-		sl.InsertAll(items)
+		sl.SetAll(items)
 	}
 	return sl
 }
@@ -50,7 +50,7 @@ func NewCustomSkipList[K, V any](lessThan func(K, K) bool, items ...SLItem[K, V]
 		lessThan: lessThan,
 	}
 	if items != nil && len(items) > 0 {
-		sl.InsertAll(items)
+		sl.SetAll(items)
 	}
 	return sl
 }
@@ -125,8 +125,8 @@ func (sl *SkipList[K, V]) SetMaxLevel(newMaxLevel int) {
 	sl.rw.RUnlock()
 }
 
-// Insert adds a key-value pair to the skip list and returns true if a new key was added, false otherwise
-func (sl *SkipList[K, V]) Insert(key K, val V) bool {
+// Set inserts or updates a key-value pair in the skip list. It returns true if a new key was added, false otherwise
+func (sl *SkipList[K, V]) Set(key K, val V) bool {
 	sl.rw.RLock()
 	update, x := sl.searchNode(key)
 	x = x.forward[0]
@@ -166,8 +166,8 @@ func (sl *SkipList[K, V]) Insert(key K, val V) bool {
 	return true
 }
 
-// InsertAll bulk inserts each element in an array of key-value pairs.
-func (sl *SkipList[K, V]) InsertAll(items []SLItem[K, V]) {
+// SetAll bulk inserts each element in an array of key-value pairs.
+func (sl *SkipList[K, V]) SetAll(items []SLItem[K, V]) {
 	sl.rw.Lock()
 	for _, item := range items {
 		sl.insert(item.Key, item.Val)
@@ -251,7 +251,8 @@ func (sl *SkipList[K, V]) Range(start, end K) Iterator[K, V] {
 	return nil
 }
 
-// Iterator returns a bidirectional iterator over the skip list if there are elements, or nil if not.
+// Iterator returns a bidirectional iterator from the start of skip list if there are elements, or nil if
+// the list isn't populated.
 func (sl *SkipList[K, V]) Iterator() Iterator[K, V] {
 	return sl.iterator(sl.header, nil)
 }

@@ -7,12 +7,12 @@ import (
 	"time"
 )
 
-func TestSkipList_Insert(t *testing.T) {
+func TestSkipList_Set(t *testing.T) {
 	sl := NewSkipList[int, string]()
 
-	sl.Insert(2, "hello, world")
-	sl.Insert(0, "bar")
-	sl.Insert(-5, "foo")
+	sl.Set(2, "hello, world")
+	sl.Set(0, "bar")
+	sl.Set(-5, "foo")
 
 	want := []SLItem[int, string]{
 		{-5, "foo"},
@@ -33,12 +33,12 @@ func TestSkipList_Insert(t *testing.T) {
 	}
 }
 
-func TestSkipList_InsertExistingKey(t *testing.T) {
+func TestSkipList_SetExistingKey(t *testing.T) {
 	sl := NewSkipList[int, string]()
 
 	want := "bye, world"
-	sl.Insert(2, "hello, world")
-	sl.Insert(2, want)
+	sl.Set(2, "hello, world")
+	sl.Set(2, want)
 
 	val, ok := sl.Get(2)
 	if !ok {
@@ -62,7 +62,7 @@ func TestSkipList_Search(t *testing.T) {
 	}
 
 	for _, item := range items {
-		sl.Insert(item.Key, item.Val)
+		sl.Set(item.Key, item.Val)
 	}
 
 	for _, item := range items {
@@ -93,7 +93,7 @@ func TestSkipList_Delete(t *testing.T) {
 	}
 
 	for _, item := range items {
-		sl.Insert(item.Key, item.Val)
+		sl.Set(item.Key, item.Val)
 	}
 
 	val, ok := sl.Delete(-5)
@@ -135,14 +135,14 @@ func TestSkipList_Delete(t *testing.T) {
 //func TestSkipList_Range(t *testing.T) {
 //	sl := NewSkipList[int, string]()
 //
-//	sl.Insert(10, "ten")
-//	sl.Insert(20, "twenty")
-//	sl.Insert(40, "forty")
-//	sl.Insert(50, "fifty")
-//	sl.Insert(8, "eight")
-//	sl.Insert(5, "five")
-//	sl.Insert(30, "thirty")
-//	sl.Insert(1, "hello, world")
+//	sl.Set(10, "ten")
+//	sl.Set(20, "twenty")
+//	sl.Set(40, "forty")
+//	sl.Set(50, "fifty")
+//	sl.Set(8, "eight")
+//	sl.Set(5, "five")
+//	sl.Set(30, "thirty")
+//	sl.Set(1, "hello, world")
 //
 //	res := sl.Range(5, 40)
 //	fmt.Println(res)
@@ -157,14 +157,14 @@ func TestSkipList_Min(t *testing.T) {
 		t.Error("Min on empty skip list failed")
 	}
 
-	sl.Insert(10, "ten")
-	sl.Insert(20, "twenty")
-	sl.Insert(40, "forty")
-	sl.Insert(50, "fifty")
-	sl.Insert(8, "eight")
-	sl.Insert(5, "five")
-	sl.Insert(30, "thirty")
-	sl.Insert(1, "hello, world")
+	sl.Set(10, "ten")
+	sl.Set(20, "twenty")
+	sl.Set(40, "forty")
+	sl.Set(50, "fifty")
+	sl.Set(8, "eight")
+	sl.Set(5, "five")
+	sl.Set(30, "thirty")
+	sl.Set(1, "hello, world")
 
 	res = sl.Min()
 	if res.Key != 1 {
@@ -187,14 +187,14 @@ func TestSkipList_Max(t *testing.T) {
 		t.Error("Max on empty skip list failed")
 	}
 
-	sl.Insert(10, "ten")
-	sl.Insert(20, "twenty")
-	sl.Insert(40, "forty")
-	sl.Insert(50, "fifty")
-	sl.Insert(8, "eight")
-	sl.Insert(5, "five")
-	sl.Insert(30, "thirty")
-	sl.Insert(1, "hello, world")
+	sl.Set(10, "ten")
+	sl.Set(20, "twenty")
+	sl.Set(40, "forty")
+	sl.Set(50, "fifty")
+	sl.Set(8, "eight")
+	sl.Set(5, "five")
+	sl.Set(30, "thirty")
+	sl.Set(1, "hello, world")
 
 	res = sl.Max()
 	want := 50
@@ -230,13 +230,13 @@ func TestSkipList_Merge(t *testing.T) {
 		{3, "foo"},
 	}
 
-	sl1.InsertAll(items1)
-	sl2.InsertAll(items2)
+	sl1.SetAll(items1)
+	sl2.SetAll(items2)
 
 	res := Merge(sl1, sl2)
 	fmt.Println(res)
 	fmt.Println(res.size)
-	fmt.Println(res.Min(), res.Max())
+	fmt.Println(res.Min(), res.max.backward)
 }
 
 func TestNewCustomKeySkipList(t *testing.T) {
@@ -245,8 +245,8 @@ func TestNewCustomKeySkipList(t *testing.T) {
 	})
 	k1 := time.Now()
 	k2 := k1.Add(10)
-	sl.Insert(k1, "hello, world")
-	sl.Insert(k2, "bye, world")
+	sl.Set(k1, "hello, world")
+	sl.Set(k2, "bye, world")
 
 	val, ok := sl.Get(k1)
 	if !ok {
