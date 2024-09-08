@@ -21,47 +21,33 @@ type Iterator[K, V any] interface {
 }
 
 type iter[K, V any] struct {
-	lessThan func(K, K) bool
-	curr     *SLNode[K, V]
-	seen     []*SLNode[K, V]
-	seenIdx  int
-	end      *K
+	lessThan    func(K, K) bool
+	curr        *SLNode[K, V]
+	rangeEndKey *K
 }
 
 func (it *iter[K, V]) hasNext() bool {
 	if it.curr.forward[0] == nil {
 		return false
 	}
-	if it.end != nil {
-		return it.lessThan(it.curr.forward[0].key, *it.end)
+	if it.rangeEndKey != nil {
+		return it.lessThan(it.curr.forward[0].key, *it.rangeEndKey)
 	}
 	return true
 }
 
 func (it *iter[K, V]) Next() bool {
-	if it.seenIdx < len(it.seen)-1 {
-		it.seenIdx++
-		it.curr = it.seen[it.seenIdx]
-		return true
-	}
 	if it.hasNext() {
 		it.curr = it.curr.forward[0]
-		it.seenIdx++
-		if it.seenIdx >= len(it.seen) {
-			it.seen = append(it.seen, it.curr)
-		}
 		return true
 	}
 	return false
 }
 
 func (it *iter[K, V]) Prev() bool {
-	it.seenIdx--
-	if it.seenIdx >= 0 {
-		it.curr = it.seen[it.seenIdx]
+	if !it.curr.backward.isHeader {
+		it.curr = it.curr.backward
 		return true
-	} else {
-		it.seenIdx = 0
 	}
 	return false
 }
@@ -84,15 +70,16 @@ func (it *iter[K, V]) Value() V {
 
 // All returns an array of the key-value pairs covered by this iterator
 func (it *iter[K, V]) All() []SLItem[K, V] {
-	pairs := make([]SLItem[K, V], len(it.seen))
-	for i, node := range it.seen {
-		pairs[i] = *node.Item()
-	}
-	originalIdx := it.seenIdx
-	it.seenIdx = len(it.seen) - 1
-	for it.Next() {
-		pairs = append(pairs, *it.curr.Item())
-	}
-	it.seenIdx = originalIdx
-	return pairs
+	//pairs := make([]SLItem[K, V], len(it.seen))
+	//for i, node := range it.seen {
+	//	pairs[i] = *node.Item()
+	//}
+	//originalIdx := it.seenIdx
+	//it.seenIdx = len(it.seen) - 1
+	//for it.Next() {
+	//	pairs = append(pairs, *it.curr.Item())
+	//}
+	//it.seenIdx = originalIdx
+	//return pairs
+	return nil
 }

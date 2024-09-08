@@ -24,6 +24,7 @@ type SLNode[K, V any] struct {
 	val      V
 	isHeader bool
 	forward  []*SLNode[K, V]
+	backward *SLNode[K, V] // a pointer to the previous node only on the bottom level
 }
 
 // Level return the highest level this node is in

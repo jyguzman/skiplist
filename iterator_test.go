@@ -68,6 +68,41 @@ func TestIterator_Prev(t *testing.T) {
 	}
 }
 
+func TestIteratorFromEnd(t *testing.T) {
+	items := []SLItem[int, string]{
+		{-5, "beefcafe"},
+		{0, "foo"},
+		{1, "bar"},
+		{2, "bar"},
+		{4, "bing"},
+		{7, "bong"},
+		{8, "hello, world"},
+	}
+
+	sl := NewSkipList(items...)
+
+	it := sl.IteratorFromEnd()
+
+	key, val := it.Key(), it.Value()
+	i := len(items) - 1
+	if key != items[i].Key {
+		t.Errorf("key mismatch, expected %v, got %v", items[i].Key, key)
+	}
+	if val != items[i].Val {
+		t.Errorf("val mismatch, expected %v, got %v", items[i].Val, val)
+	}
+	for it.Prev() {
+		i--
+		key, val = it.Key(), it.Value()
+		if key != items[i].Key {
+			t.Errorf("key mismatch, expected %v, got %v", items[i].Key, key)
+		}
+		if val != items[i].Val {
+			t.Errorf("val mismatch, expected %v, got %v", items[i].Val, val)
+		}
+	}
+}
+
 func TestIterator_Range(t *testing.T) {
 	items := []SLItem[int, string]{
 		{-5, "beefcafe"},

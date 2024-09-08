@@ -20,7 +20,7 @@ type SkipList[K, V any] struct {
 	lessThan func(K, K) bool // function used to compare keys
 	header   *SLNode[K, V]   // the header node
 	min      *SLItem[K, V]   // the element with the minimum key
-	max      *SLItem[K, V]   // the element with the maximum key
+	max      *SLNode[K, V]   // the element with the maximum key
 }
 
 // NewSkipList initializes a skip list using a cmp.Ordered key type and with a default max level of 32.
@@ -93,7 +93,10 @@ func (sl *SkipList[K, V]) Max() *SLItem[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
 
-	return sl.max
+	if sl.max == nil {
+		return nil
+	}
+	return sl.max.Item()
 }
 
 // SetMaxLevel sets the max level of the skip list, up to 64. Inputs greater than 64 are clamped
@@ -148,15 +151,16 @@ func (sl *SkipList[K, V]) Insert(key K, val V) bool {
 		x.forward[i] = update[i].forward[i]
 		update[i].forward[i] = x
 	}
+	x.backward = update[0]
 
 	if sl.size == 0 {
-		sl.min, sl.max = x.Item(), x.Item()
+		sl.min, sl.max = x.Item(), x
 	}
 	if sl.lessThan(x.key, sl.min.Key) {
 		sl.min = x.Item()
 	}
-	if sl.lessThan(sl.max.Key, x.key) {
-		sl.max = x.Item()
+	if sl.lessThan(sl.max.key, x.key) {
+		sl.max = x
 	}
 
 	sl.size++
@@ -189,7 +193,7 @@ func (sl *SkipList[K, V]) Delete(key K) (V, bool) {
 			sl.min, sl.max = nil, nil
 		} else {
 			if x.forward[0] == nil {
-				sl.max = update[0].Item()
+				sl.max = update[0]
 			}
 			if update[0].isHeader {
 				sl.min = x.forward[0].Item()
@@ -201,6 +205,7 @@ func (sl *SkipList[K, V]) Delete(key K) (V, bool) {
 			}
 			update[i].forward[i] = x.forward[i]
 		}
+		x.backward = update[0]
 		val = x.val
 		x = nil
 		sl.size--
@@ -242,17 +247,22 @@ func (sl *SkipList[K, V]) Range(start, end K) Iterator[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
 
-	_, startNode := sl.searchNode(start)
+	update, startNode := sl.searchNode(start)
 	startNode = startNode.forward[0]
 	if startNode != nil && !sl.lessThan(startNode.key, start) {
-		return sl.iterator(startNode, &end)
+		return sl.iterator(update[0], &end)
 	}
 	return nil
 }
 
 // Iterator returns a snapshot iterator over the skip list.
 func (sl *SkipList[K, V]) Iterator() Iterator[K, V] {
-	return sl.iterator(sl.header.forward[0], nil)
+	return sl.iterator(sl.header, nil)
+}
+
+// IteratorFromEnd returns a snapshot iterator starting from the end of the skip list.
+func (sl *SkipList[K, V]) IteratorFromEnd() Iterator[K, V] {
+	return sl.iterator(sl.max, nil)
 }
 
 // Clear removes all elements from the skip list
@@ -335,7 +345,7 @@ func Merge[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 	}
 
 	newMax := sl1.max
-	if sl1.lessThan(sl2.max.Key, sl1.max.Key) {
+	if sl1.lessThan(sl2.max.key, sl1.max.key) {
 		newMax = sl2.max
 	}
 
@@ -461,15 +471,16 @@ func (sl *SkipList[K, V]) insert(key K, val V) {
 			x.forward[i] = update[i].forward[i]
 			update[i].forward[i] = x
 		}
+		x.backward = update[0]
 
 		if sl.size == 0 {
-			sl.min, sl.max = x.Item(), x.Item()
+			sl.min, sl.max = x.Item(), x
 		}
 		if sl.lessThan(x.key, sl.min.Key) {
 			sl.min = x.Item()
 		}
-		if sl.lessThan(sl.max.Key, x.key) {
-			sl.max = x.Item()
+		if sl.lessThan(sl.max.key, x.key) {
+			sl.max = x
 		}
 
 		sl.size++
@@ -486,7 +497,7 @@ func (sl *SkipList[K, V]) delete(key K) {
 			sl.min, sl.max = nil, nil
 		} else {
 			if x.forward[0] == nil {
-				sl.max = update[0].Item()
+				sl.max = update[0]
 			}
 			if update[0].isHeader {
 				sl.min = x.forward[0].Item()
@@ -498,6 +509,8 @@ func (sl *SkipList[K, V]) delete(key K) {
 			}
 			update[i].forward[i] = x.forward[i]
 		}
+
+		x.forward[0] = update[0]
 		x = nil
 		sl.size--
 		for i := sl.level; i > 0 && sl.header.forward[sl.level] == nil; i-- {
@@ -510,15 +523,9 @@ func (sl *SkipList[K, V]) delete(key K) {
 func (sl *SkipList[K, V]) iterator(start *SLNode[K, V], endKey *K) Iterator[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
-	var k K
-	var v V
-	dummy := newNode[K, V](1, k, v)
-	dummy.forward[0] = start
 	return &iter[K, V]{
-		lessThan: sl.lessThan,
-		curr:     dummy,
-		seen:     make([]*SLNode[K, V], 0),
-		seenIdx:  -1,
-		end:      endKey,
+		lessThan:    sl.lessThan,
+		curr:        start,
+		rangeEndKey: endKey,
 	}
 }
