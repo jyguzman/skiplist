@@ -19,9 +19,8 @@ type Iterator[K, V any] interface {
 
 type iter[K, V any] struct {
 	lessThan    func(K, K) bool
-	start       *SLNode[K, V]
 	curr        *SLNode[K, V]
-	rangeEndKey *K
+	rangeEndKey *K // if this is a range iterator, this is the key the iterator goes up to, exclusive
 }
 
 func (it *iter[K, V]) hasNext() bool {

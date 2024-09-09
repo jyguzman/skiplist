@@ -167,7 +167,7 @@ func (sl *SkipList[K, V]) Set(key K, val V) bool {
 func (sl *SkipList[K, V]) SetAll(items []SLItem[K, V]) {
 	sl.rw.Lock()
 	for _, item := range items {
-		sl.insert(item.Key, item.Val)
+		sl.set(item.Key, item.Val)
 	}
 	sl.rw.Unlock()
 }
@@ -459,7 +459,7 @@ func (sl *SkipList[K, V]) searchNode(searchKey K) ([]*SLNode[K, V], *SLNode[K, V
 
 // Inserts a key-value pair but doesn't use locks; this is used for the InsertAll() method
 // to acquire a single lock for the bulk insertion
-func (sl *SkipList[K, V]) insert(key K, val V) {
+func (sl *SkipList[K, V]) set(key K, val V) {
 	update, x := sl.searchNode(key)
 	x = x.forward[0]
 	if x != nil && !sl.lessThan(key, x.key) {
@@ -530,7 +530,6 @@ func (sl *SkipList[K, V]) iterator(start *SLNode[K, V], endKey *K) Iterator[K, V
 
 	return &iter[K, V]{
 		lessThan:    sl.lessThan,
-		start:       start,
 		curr:        start,
 		rangeEndKey: endKey,
 	}

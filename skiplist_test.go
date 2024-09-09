@@ -1,10 +1,10 @@
 package skiplist
 
 import (
+	"bytes"
 	"fmt"
 	"slices"
 	"testing"
-	"time"
 )
 
 func TestSkipList_Set(t *testing.T) {
@@ -240,25 +240,25 @@ func TestSkipList_Merge(t *testing.T) {
 }
 
 func TestNewCustomKeySkipList(t *testing.T) {
-	sl := NewCustomSkipList[time.Time, string](func(t1 time.Time, t2 time.Time) bool {
-		return t1.Before(t2)
+	sl := NewCustomSkipList[[]byte, string](func(bs1, bs2 []byte) bool {
+		return bytes.Compare(bs1, bs2) < 0
 	})
-	k1 := time.Now()
-	k2 := k1.Add(10)
-	sl.Set(k1, "hello, world")
-	sl.Set(k2, "bye, world")
+	bs1 := []byte("foo")
+	bs2 := []byte("bar")
+	sl.Set(bs1, "hello, world")
+	sl.Set(bs2, "bye, world")
 
-	val, ok := sl.Get(k1)
+	val, ok := sl.Get(bs1)
 	if !ok {
-		t.Errorf("key %v not found", k1.String())
+		t.Errorf("key %v not found", string(bs1))
 	}
 	if val != "hello, world" {
 		t.Errorf("wanted val %s but got %s", "hello, world", val)
 	}
 
-	val, ok = sl.Delete(k2)
+	val, ok = sl.Delete(bs2)
 	if !ok {
-		t.Errorf("key %v not found", k2.String())
+		t.Errorf("key %v not found", string(bs2))
 	}
 	if val != "bye, world" {
 		t.Errorf("wanted val %s but got %s", "bye, world", val)
@@ -285,4 +285,9 @@ func TestSkipList_DeleteIterator(t *testing.T) {
 	for it.Prev() {
 		fmt.Println(it.Key(), it.Value())
 	}
+}
+
+func TestSkipList_Concurrent(t *testing.T) {
+	sl := NewSkipList[int, string]()
+	fmt.Println(sl)
 }
