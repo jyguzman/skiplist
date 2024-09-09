@@ -185,12 +185,11 @@ func (sl *SkipList[K, V]) Delete(key K) (V, bool) {
 
 	var val V
 	if x != nil && !sl.lessThan(key, x.key) {
-		if sl.size == 1 {
+		if x.forward[0] == nil {
+			sl.max = update[0]
+		}
+		if sl.max.isHeader {
 			sl.max = nil
-		} else {
-			if x.forward[0] == nil {
-				sl.max = update[0]
-			}
 		}
 		for i := 0; i <= sl.level; i++ {
 			if update[i].forward[i] != x {
@@ -198,7 +197,9 @@ func (sl *SkipList[K, V]) Delete(key K) (V, bool) {
 			}
 			update[i].forward[i] = x.forward[i]
 		}
-		x.backward = update[0]
+		if x.forward[0] != nil {
+			x.forward[0].backward = update[0]
+		}
 		val = x.val
 		x = nil
 		sl.size--
@@ -257,7 +258,11 @@ func (sl *SkipList[K, V]) Iterator() Iterator[K, V] {
 // IteratorFromEnd returns a bidirectional iterator starting from the end of the skip list, or nil if
 // the list isn't populated.
 func (sl *SkipList[K, V]) IteratorFromEnd() Iterator[K, V] {
-	return sl.iterator(sl.max, nil)
+	var k K
+	var v V
+	dummy := newNode(1, k, v)
+	dummy.backward = sl.max
+	return sl.iterator(dummy, nil)
 }
 
 // IteratorFrom returns a bidirectional iterator starting from the first node with key equal to
@@ -489,12 +494,11 @@ func (sl *SkipList[K, V]) delete(key K) {
 	update, x := sl.searchNode(key)
 	x = x.forward[0]
 	if x != nil && !sl.lessThan(key, x.key) {
-		if sl.size == 1 {
+		if x.forward[0] == nil {
+			sl.max = update[0]
+		}
+		if sl.max.isHeader {
 			sl.max = nil
-		} else {
-			if x.forward[0] == nil {
-				sl.max = update[0]
-			}
 		}
 		for i := 0; i <= sl.level; i++ {
 			if update[i].forward[i] != x {
@@ -502,8 +506,9 @@ func (sl *SkipList[K, V]) delete(key K) {
 			}
 			update[i].forward[i] = x.forward[i]
 		}
-
-		x.forward[0] = update[0]
+		if x.forward[0] != nil {
+			x.forward[0].backward = update[0]
+		}
 		x = nil
 		sl.size--
 		for i := sl.level; i > 0 && sl.header.forward[sl.level] == nil; i-- {
@@ -517,6 +522,10 @@ func (sl *SkipList[K, V]) delete(key K) {
 func (sl *SkipList[K, V]) iterator(start *SLNode[K, V], endKey *K) Iterator[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
+
+	if start == nil {
+		return nil
+	}
 
 	return &iter[K, V]{
 		lessThan:    sl.lessThan,

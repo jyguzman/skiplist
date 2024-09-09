@@ -264,3 +264,25 @@ func TestNewCustomKeySkipList(t *testing.T) {
 		t.Errorf("wanted val %s but got %s", "bye, world", val)
 	}
 }
+
+func TestSkipList_DeleteIterator(t *testing.T) {
+	items := []SLItem[int, string]{
+		{-5, "beefcafe"},
+		{0, "foo"},
+		{1, "bar"},
+		{2, "barTwo"},
+		{4, "bing"},
+		{7, "bong"},
+		{8, "hello, world"},
+	}
+
+	sl := NewSkipList(items...)
+
+	sl.Delete(4)
+	sl.Delete(8)
+
+	it := sl.IteratorFromEnd()
+	for it.Prev() {
+		fmt.Println(it.Key(), it.Value())
+	}
+}

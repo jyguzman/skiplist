@@ -1,7 +1,6 @@
 package skiplist
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -134,26 +133,4 @@ func TestIterator_Range(t *testing.T) {
 	if ok != false {
 		t.Errorf("range: expected false but got %v", ok)
 	}
-}
-
-func TestIterator_All(t *testing.T) {
-	items := []SLItem[int, string]{
-		{-5, "beefcafe"},
-		{0, "foo"},
-		{1, "bar"},
-		{2, "bar"},
-		{4, "bing"},
-		{7, "bong"},
-		{8, "hello, world"},
-	}
-
-	sl := NewSkipList(items...)
-
-	it := sl.Iterator()
-	it.Next()
-	it.Next()
-	fmt.Println(it.Key(), it.Value())
-	all := it.All()
-	fmt.Println(all)
-	fmt.Println(it.Key(), it.Value())
 }
