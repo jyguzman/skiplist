@@ -25,46 +25,46 @@ func (p Pair[K, V]) String() string {
 	return fmt.Sprintf("Pair{K: %v, V: %v}", p.key, p.val)
 }
 
-// NewPair returns a key-value pair.
+// NewPair returns a new key-value pair.
 func NewPair[K, V any](key K, val V) Pair[K, V] {
 	return Pair[K, V]{key: key, val: val}
 }
 
-// SLNode a node in the skip list that contains a key, value, and list of forward pointers
-type SLNode[K, V any] struct {
+// slNode a node in the skip list that contains a key, value, and list of forward pointers
+type slNode[K, V any] struct {
 	key      K
 	val      V
 	isHeader bool
-	forward  []*SLNode[K, V]
-	backward *SLNode[K, V] // a pointer to the previous node only on the bottom level
+	forward  []*slNode[K, V]
+	backward *slNode[K, V] // a pointer to the previous node only on the bottom level
 }
 
 // Level return the highest level this node is in
-func (sn *SLNode[K, V]) Level() int {
+func (sn *slNode[K, V]) Level() int {
 	return len(sn.forward) - 1
 }
 
-func (sn *SLNode[K, V]) String() string {
+func (sn *slNode[K, V]) String() string {
 	return fmt.Sprintf("{key: %v, val: %v}", sn.key, sn.val)
 }
 
 // Pair returns the key-value pair from this node
-func (sn *SLNode[K, V]) Pair() *Pair[K, V] {
+func (sn *slNode[K, V]) Pair() *Pair[K, V] {
 	return &Pair[K, V]{sn.key, sn.val}
 }
 
-func newHeader[K, V any](maxLevel int) *SLNode[K, V] {
-	header := &SLNode[K, V]{isHeader: true, forward: make([]*SLNode[K, V], maxLevel)}
+func newHeader[K, V any](maxLevel int) *slNode[K, V] {
+	header := &slNode[K, V]{isHeader: true, forward: make([]*slNode[K, V], maxLevel)}
 	for i := 0; i < maxLevel; i++ {
 		header.forward[i] = nil
 	}
 	return header
 }
 
-func newNode[K, V any](level int, key K, val V) *SLNode[K, V] {
-	return &SLNode[K, V]{
+func newNode[K, V any](level int, key K, val V) *slNode[K, V] {
+	return &slNode[K, V]{
 		key:     key,
 		val:     val,
-		forward: make([]*SLNode[K, V], level+1),
+		forward: make([]*slNode[K, V], level+1),
 	}
 }

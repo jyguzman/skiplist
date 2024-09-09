@@ -18,8 +18,8 @@ type SkipList[K, V any] struct {
 	level    int             // the current highest level
 	size     int             // the current number of elements
 	lessThan func(K, K) bool // function used to compare keys
-	header   *SLNode[K, V]   // the header node
-	max      *SLNode[K, V]   // the node with the maximum key, which can also be considered the "end" or "back" of the list
+	header   *slNode[K, V]   // the header node
+	max      *slNode[K, V]   // the node with the maximum key, which can also be considered the "end" or "back" of the list
 }
 
 // NewSkipList initializes a skip list using a cmp.Ordered key type and with a default max level of 32.
@@ -362,7 +362,7 @@ func Merge[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 	p1, p2 := sl1.header.forward[0], sl2.header.forward[0]
 
 	newHead := newHeader[K, V](newMaxLevel)
-	previous := make([]*SLNode[K, V], newMaxLevel)
+	previous := make([]*slNode[K, V], newMaxLevel)
 	for i := 0; i < newMaxLevel; i++ {
 		previous[i] = newHead
 	}
@@ -377,7 +377,7 @@ func Merge[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 			newLevel = level
 		}
 
-		var node *SLNode[K, V]
+		var node *slNode[K, V]
 		if sl1.lessThan(k1, k2) {
 			newSize++
 			node = newNode[K, V](level, k1, p1.val)
@@ -447,8 +447,8 @@ func (sl *SkipList[K, V]) randomLevel() int {
 
 // searchNode returns the node with the given key and an array containing the last
 // node that comes before the target node at each level of the list.
-func (sl *SkipList[K, V]) searchNode(searchKey K) ([]*SLNode[K, V], *SLNode[K, V]) {
-	previous := make([]*SLNode[K, V], sl.maxLevel)
+func (sl *SkipList[K, V]) searchNode(searchKey K) ([]*slNode[K, V], *slNode[K, V]) {
+	previous := make([]*slNode[K, V], sl.maxLevel)
 	x := sl.header
 	for i := sl.level; i >= 0; i-- {
 		for x.forward[i] != nil && sl.lessThan(x.forward[i].key, searchKey) {
@@ -522,7 +522,7 @@ func (sl *SkipList[K, V]) delete(key K) {
 // iterator returns an Iterator beginning at the given node and ending at node with the given endKey (exclusive).
 // If endKey is nil, the iterator goes until the end of the list. If start is nil, this would suggest the list
 // is empty, so it returns nil.
-func (sl *SkipList[K, V]) iterator(start *SLNode[K, V], endKey *K) Iterator[K, V] {
+func (sl *SkipList[K, V]) iterator(start *slNode[K, V], endKey *K) Iterator[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
 
