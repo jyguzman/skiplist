@@ -38,9 +38,10 @@ func NewSkipList[K cmp.Ordered, V any](items ...SLItem[K, V]) *SkipList[K, V] {
 	return sl
 }
 
-// NewCustomSkipList initializes a skip list using a user-defined custom key type. Must include a
-// function to that how a key X is lessThan than key Y.
-// Optionally include items with which to initialize the list.
+// NewCustomSkipList initializes a skip list using a custom key type, which means there must be
+// a function that defines a linear ordering of keys, i.e. for two keys X & Y the function must
+// define how X is less than Y. Optionally include items with which to initialize the list. Uses
+// default max level of 32.
 func NewCustomSkipList[K, V any](lessThan func(K, K) bool, items ...SLItem[K, V]) *SkipList[K, V] {
 	sl := &SkipList[K, V]{
 		maxLevel: DefaultMaxLevel - 1,
@@ -55,7 +56,7 @@ func NewCustomSkipList[K, V any](lessThan func(K, K) bool, items ...SLItem[K, V]
 	return sl
 }
 
-// Len returns the number of elements in the skip list
+// Len returns the number of elements in the skip list.
 func (sl *SkipList[K, V]) Len() int {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
@@ -63,7 +64,7 @@ func (sl *SkipList[K, V]) Len() int {
 	return sl.size
 }
 
-// IsEmpty returns true if the skip list has no elements
+// IsEmpty returns true if the skip list has no elements.
 func (sl *SkipList[K, V]) IsEmpty() bool {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
@@ -79,8 +80,8 @@ func (sl *SkipList[K, V]) MaxLevel() int {
 	return sl.maxLevel + 1
 }
 
-// Min returns the element with the minimum key.
-func (sl *SkipList[K, V]) Min() *SLItem[K, V] {
+// First returns the first element of the skip list. This is the element with the minimum key.
+func (sl *SkipList[K, V]) First() *SLItem[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
 
@@ -90,8 +91,8 @@ func (sl *SkipList[K, V]) Min() *SLItem[K, V] {
 	return nil
 }
 
-// Max returns the element with the maximum key.
-func (sl *SkipList[K, V]) Max() *SLItem[K, V] {
+// Last returns the last element of the skip list. This is the element with the maximum key.
+func (sl *SkipList[K, V]) Last() *SLItem[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
 
@@ -125,7 +126,8 @@ func (sl *SkipList[K, V]) SetMaxLevel(newMaxLevel int) {
 	sl.rw.RUnlock()
 }
 
-// Set inserts or updates a key-value pair in the skip list. It returns true if a new key was inserted, false otherwise
+// Set sets a key to a value in the skip list. Returns true if this pair was newly inserted, or false
+// if this was an update.
 func (sl *SkipList[K, V]) Set(key K, val V) bool {
 	sl.rw.RLock()
 	update, x := sl.searchNode(key)
@@ -163,17 +165,17 @@ func (sl *SkipList[K, V]) Set(key K, val V) bool {
 	return true
 }
 
-// SetAll bulk inserts each element in an array of key-value pairs.
+// SetAll inserts each key-value pair in an array of pairs into the skip list.
 func (sl *SkipList[K, V]) SetAll(items []SLItem[K, V]) {
 	sl.rw.Lock()
 	for _, item := range items {
-		sl.set(item.Key, item.Val)
+		sl.set(item.key, item.val)
 	}
 	sl.rw.Unlock()
 }
 
 // Delete removes the element with given key from the skip list. Returns the deleted value if it
-// existed and a bool indicating if it did
+// existed and a bool indicating if it did.
 func (sl *SkipList[K, V]) Delete(key K) (V, bool) {
 	sl.rw.RLock()
 	update, x := sl.searchNode(key)
@@ -220,7 +222,7 @@ func (sl *SkipList[K, V]) DeleteAll(keys []K) {
 	sl.rw.Unlock()
 }
 
-// Get returns a value given by the key if the key exists and a bool indicating if it does.
+// Get returns the value associated with the key if the key exists and a bool indicating if it does.
 func (sl *SkipList[K, V]) Get(key K) (V, bool) {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
@@ -235,8 +237,8 @@ func (sl *SkipList[K, V]) Get(key K) (V, bool) {
 	return val, false
 }
 
-// Range returns an iterator beginning at node with key start (inclusive) to
-// node with key end (exclusive).
+// Range returns a bidirectional iterator beginning at the first node with key greater than or
+// equal to start (inclusive) to the node with key end (exclusive), or nil if the list is empty.
 func (sl *SkipList[K, V]) Range(start, end K) Iterator[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
@@ -249,24 +251,26 @@ func (sl *SkipList[K, V]) Range(start, end K) Iterator[K, V] {
 	return nil
 }
 
-// Iterator returns a bidirectional iterator from the start of skip list if there are elements, or nil if
-// the list isn't populated.
+// Iterator returns a bidirectional iterator starting from the first node of the skip list,
+// or nil if the list is empty.
 func (sl *SkipList[K, V]) Iterator() Iterator[K, V] {
 	return sl.iterator(sl.header, nil)
 }
 
-// IteratorFromEnd returns a bidirectional iterator starting from the end of the skip list, or nil if
-// the list isn't populated.
+// IteratorFromEnd returns a bidirectional iterator starting from the last node of the skip list, or nil if
+// the list is empty.
 func (sl *SkipList[K, V]) IteratorFromEnd() Iterator[K, V] {
 	var k K
 	var v V
 	dummy := newNode(1, k, v)
+	sl.rw.RLock()
 	dummy.backward = sl.max
+	sl.rw.RUnlock()
 	return sl.iterator(dummy, nil)
 }
 
 // IteratorFrom returns a bidirectional iterator starting from the first node with key equal to
-// or greater than start, or nil if the list isn't populated.
+// or greater than start, or nil if the list is empty.
 func (sl *SkipList[K, V]) IteratorFrom(start K) Iterator[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
@@ -279,7 +283,7 @@ func (sl *SkipList[K, V]) IteratorFrom(start K) Iterator[K, V] {
 	return nil
 }
 
-// Clear removes all elements from the skip list
+// Clear resets the state of the skip list, removing all elements from the skip list.
 func (sl *SkipList[K, V]) Clear() {
 	sl.rw.Lock()
 
@@ -341,8 +345,6 @@ func (sl *SkipList[K, V]) String() string {
 // Merge returns a new skip list with the elements from both lists. For any keys that are
 // in both of the lists, the result will use the value from the second list.
 // The maxLevel of the result will be the greater maxLevel of the inputs.
-// The min of the result will be the smaller min  of the inputs, and the max
-// will be the greater max from the inputs.
 func Merge[K, V any](sl1, sl2 *SkipList[K, V]) *SkipList[K, V] {
 	sl1.rw.Lock()
 	sl2.rw.Lock()

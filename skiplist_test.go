@@ -62,16 +62,16 @@ func TestSkipList_Search(t *testing.T) {
 	}
 
 	for _, item := range items {
-		sl.Set(item.Key, item.Val)
+		sl.Set(item.key, item.val)
 	}
 
 	for _, item := range items {
-		val, ok := sl.Get(item.Key)
+		val, ok := sl.Get(item.key)
 		if !ok {
-			t.Errorf("search: key %d not found", item.Key)
+			t.Errorf("search: key %d not found", item.key)
 		}
-		if val != item.Val {
-			t.Errorf("search: want value: %v, got value: %v", item.Val, val)
+		if val != item.val {
+			t.Errorf("search: want value: %v, got value: %v", item.val, val)
 		}
 	}
 
@@ -93,7 +93,7 @@ func TestSkipList_Delete(t *testing.T) {
 	}
 
 	for _, item := range items {
-		sl.Set(item.Key, item.Val)
+		sl.Set(item.key, item.val)
 	}
 
 	val, ok := sl.Delete(-5)
@@ -152,7 +152,7 @@ func TestSkipList_Delete(t *testing.T) {
 func TestSkipList_Min(t *testing.T) {
 	sl := NewSkipList[int, string]()
 
-	res := sl.Min()
+	res := sl.First()
 	if res != nil {
 		t.Error("Min on empty skip list failed")
 	}
@@ -166,23 +166,23 @@ func TestSkipList_Min(t *testing.T) {
 	sl.Set(30, "thirty")
 	sl.Set(1, "hello, world")
 
-	res = sl.Min()
-	if res.Key != 1 {
-		t.Errorf("Initial min failed, got %d but wanted %d", res.Key, 1)
+	res = sl.First()
+	if res.key != 1 {
+		t.Errorf("Initial min failed, got %d but wanted %d", res.key, 1)
 	}
 
 	sl.Delete(1)
 
-	res = sl.Min()
-	if res.Key != 5 {
-		t.Errorf("Min after deleting previous min failed, got %d but wanted %d", res.Key, 5)
+	res = sl.First()
+	if res.key != 5 {
+		t.Errorf("Min after deleting previous min failed, got %d but wanted %d", res.key, 5)
 	}
 }
 
 func TestSkipList_Max(t *testing.T) {
 	sl := NewSkipList[int, string]()
 
-	res := sl.Max()
+	res := sl.Last()
 	if res != nil {
 		t.Error("Max on empty skip list failed")
 	}
@@ -196,15 +196,15 @@ func TestSkipList_Max(t *testing.T) {
 	sl.Set(30, "thirty")
 	sl.Set(1, "hello, world")
 
-	res = sl.Max()
+	res = sl.Last()
 	want := 50
-	if res.Key != 50 {
-		t.Errorf("Initial max call failed, got %d but want %d", res.Key, want)
+	if res.key != 50 {
+		t.Errorf("Initial max call failed, got %d but want %d", res.key, want)
 	}
 
 	sl.Delete(50)
-	res = sl.Max()
-	if res.Key != 40 {
+	res = sl.Last()
+	if res.key != 40 {
 		t.Error("Max after deleting previous max failed")
 	}
 }
@@ -236,7 +236,7 @@ func TestSkipList_Merge(t *testing.T) {
 	res := Merge(sl1, sl2)
 	fmt.Println(res)
 	fmt.Println(res.size)
-	fmt.Println(res.Min(), res.max.backward)
+	fmt.Println(res.First(), res.max.backward)
 }
 
 func TestNewCustomKeySkipList(t *testing.T) {

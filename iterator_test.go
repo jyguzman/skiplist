@@ -21,11 +21,11 @@ func TestIterator_Next(t *testing.T) {
 	i := 0
 	for it.Next() {
 		key, val := it.Key(), it.Value()
-		if key != items[i].Key {
-			t.Errorf("key mismatch, expected %v, got %v", items[i].Key, key)
+		if key != items[i].key {
+			t.Errorf("key mismatch, expected %v, got %v", items[i].key, key)
 		}
-		if val != items[i].Val {
-			t.Errorf("val mismatch, expected %v, got %v", items[i].Val, val)
+		if val != items[i].val {
+			t.Errorf("val mismatch, expected %v, got %v", items[i].val, val)
 		}
 		i++
 	}
@@ -50,20 +50,20 @@ func TestIterator_Prev(t *testing.T) {
 
 	key, val := it.Key(), it.Value()
 	i := len(items) - 1
-	if key != items[i].Key {
-		t.Errorf("key mismatch, expected %v, got %v", items[i].Key, key)
+	if key != items[i].key {
+		t.Errorf("key mismatch, expected %v, got %v", items[i].key, key)
 	}
-	if val != items[i].Val {
-		t.Errorf("val mismatch, expected %v, got %v", items[i].Val, val)
+	if val != items[i].val {
+		t.Errorf("val mismatch, expected %v, got %v", items[i].val, val)
 	}
 	for it.Prev() {
 		i--
 		key, val = it.Key(), it.Value()
-		if key != items[i].Key {
-			t.Errorf("key mismatch, expected %v, got %v", items[i].Key, key)
+		if key != items[i].key {
+			t.Errorf("key mismatch, expected %v, got %v", items[i].key, key)
 		}
-		if val != items[i].Val {
-			t.Errorf("val mismatch, expected %v, got %v", items[i].Val, val)
+		if val != items[i].val {
+			t.Errorf("val mismatch, expected %v, got %v", items[i].val, val)
 		}
 	}
 }
@@ -83,23 +83,16 @@ func TestIteratorFromEnd(t *testing.T) {
 
 	it := sl.IteratorFromEnd()
 
-	key, val := it.Key(), it.Value()
 	i := len(items) - 1
-	if key != items[i].Key {
-		t.Errorf("key mismatch, expected %v, got %v", items[i].Key, key)
-	}
-	if val != items[i].Val {
-		t.Errorf("val mismatch, expected %v, got %v", items[i].Val, val)
-	}
 	for it.Prev() {
+		key, val := it.Key(), it.Value()
+		if key != items[i].key {
+			t.Errorf("key mismatch, expected %v, got %v", items[i].key, key)
+		}
+		if val != items[i].val {
+			t.Errorf("val mismatch, expected %v, got %v", items[i].val, val)
+		}
 		i--
-		key, val = it.Key(), it.Value()
-		if key != items[i].Key {
-			t.Errorf("key mismatch, expected %v, got %v", items[i].Key, key)
-		}
-		if val != items[i].Val {
-			t.Errorf("val mismatch, expected %v, got %v", items[i].Val, val)
-		}
 	}
 }
 
@@ -120,11 +113,11 @@ func TestIterator_Range(t *testing.T) {
 	i := 1
 	for it.Next() {
 		key, val := it.Key(), it.Value()
-		if key != items[i].Key {
-			t.Errorf("key mismatch, expected %v, got %v", items[i].Key, key)
+		if key != items[i].key {
+			t.Errorf("key mismatch, expected %v, got %v", items[i].key, key)
 		}
-		if val != items[i].Val {
-			t.Errorf("val mismatch, expected %v, got %v", items[i].Val, val)
+		if val != items[i].val {
+			t.Errorf("val mismatch, expected %v, got %v", items[i].val, val)
 		}
 		i++
 	}

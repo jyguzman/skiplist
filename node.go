@@ -6,16 +6,24 @@ import (
 
 // SLItem a key-value pair in the skip list
 type SLItem[K, V any] struct {
-	Key K
-	Val V
+	key K
+	val V
 }
 
-func (sn SLItem[K, V]) String() string {
-	return fmt.Sprintf("Item{K: %v, V: %v}", sn.Key, sn.Val)
+func (sl SLItem[K, V]) Key() K {
+	return sl.key
+}
+
+func (sl SLItem[K, V]) Value() V {
+	return sl.val
+}
+
+func (sl SLItem[K, V]) String() string {
+	return fmt.Sprintf("Item{K: %v, V: %v}", sl.key, sl.val)
 }
 
 func NewItem[K, V any](key K, val V) SLItem[K, V] {
-	return SLItem[K, V]{Key: key, Val: val}
+	return SLItem[K, V]{key: key, val: val}
 }
 
 // SLNode a node in the skip list that contains a key, value, and list of forward pointers
