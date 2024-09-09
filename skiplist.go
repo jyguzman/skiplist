@@ -24,7 +24,7 @@ type SkipList[K, V any] struct {
 
 // NewSkipList initializes a skip list using a cmp.Ordered key type and with a default max level of 32.
 // Optionally include items with which to initialize the list.
-func NewSkipList[K cmp.Ordered, V any](items ...SLItem[K, V]) *SkipList[K, V] {
+func NewSkipList[K cmp.Ordered, V any](items ...Pair[K, V]) *SkipList[K, V] {
 	sl := &SkipList[K, V]{
 		maxLevel: DefaultMaxLevel - 1,
 		level:    0,
@@ -42,7 +42,7 @@ func NewSkipList[K cmp.Ordered, V any](items ...SLItem[K, V]) *SkipList[K, V] {
 // a function that defines a linear ordering of keys, i.e. for two keys X & Y the function must
 // define how X is less than Y. Optionally include items with which to initialize the list. Uses
 // default max level of 32.
-func NewCustomSkipList[K, V any](lessThan func(K, K) bool, items ...SLItem[K, V]) *SkipList[K, V] {
+func NewCustomSkipList[K, V any](lessThan func(K, K) bool, items ...Pair[K, V]) *SkipList[K, V] {
 	sl := &SkipList[K, V]{
 		maxLevel: DefaultMaxLevel - 1,
 		level:    0,
@@ -81,25 +81,25 @@ func (sl *SkipList[K, V]) MaxLevel() int {
 }
 
 // First returns the first element of the skip list. This is the element with the minimum key.
-func (sl *SkipList[K, V]) First() *SLItem[K, V] {
+func (sl *SkipList[K, V]) First() *Pair[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
 
 	if sl.header.forward[0] != nil {
-		return sl.header.forward[0].Item()
+		return sl.header.forward[0].Pair()
 	}
 	return nil
 }
 
 // Last returns the last element of the skip list. This is the element with the maximum key.
-func (sl *SkipList[K, V]) Last() *SLItem[K, V] {
+func (sl *SkipList[K, V]) Last() *Pair[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
 
 	if sl.max == nil {
 		return nil
 	}
-	return sl.max.Item()
+	return sl.max.Pair()
 }
 
 // SetMaxLevel sets the max level of the skip list, up to 64. Inputs greater than 64 are clamped
@@ -166,7 +166,7 @@ func (sl *SkipList[K, V]) Set(key K, val V) bool {
 }
 
 // SetAll inserts each key-value pair in an array of pairs into the skip list.
-func (sl *SkipList[K, V]) SetAll(items []SLItem[K, V]) {
+func (sl *SkipList[K, V]) SetAll(items []Pair[K, V]) {
 	sl.rw.Lock()
 	for _, item := range items {
 		sl.set(item.key, item.val)

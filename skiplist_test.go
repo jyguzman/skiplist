@@ -14,15 +14,15 @@ func TestSkipList_Set(t *testing.T) {
 	sl.Set(0, "bar")
 	sl.Set(-5, "foo")
 
-	want := []SLItem[int, string]{
+	want := []Pair[int, string]{
 		{-5, "foo"},
 		{0, "bar"},
 		{2, "hello, world"},
 	}
-	var res []SLItem[int, string]
+	var res []Pair[int, string]
 	h := sl.header
 	for h.forward[0] != nil {
-		res = append(res, *h.forward[0].Item())
+		res = append(res, *h.forward[0].Pair())
 		h = h.forward[0]
 	}
 	if !slices.Equal(res, want) {
@@ -53,7 +53,7 @@ func TestSkipList_SetExistingKey(t *testing.T) {
 func TestSkipList_Search(t *testing.T) {
 	sl := NewSkipList[int, string]()
 
-	items := []SLItem[int, string]{
+	items := []Pair[int, string]{
 		{5, "hello, world"},
 		{2, "bar"},
 		{0, "foo"},
@@ -84,7 +84,7 @@ func TestSkipList_Search(t *testing.T) {
 func TestSkipList_Delete(t *testing.T) {
 	sl := NewSkipList[int, string]()
 
-	items := []SLItem[int, string]{
+	items := []Pair[int, string]{
 		{5, "hello, world"},
 		{2, "bar"},
 		{0, "foo"},
@@ -213,7 +213,7 @@ func TestSkipList_Merge(t *testing.T) {
 	sl1 := NewSkipList[int, string]()
 	sl2 := NewSkipList[int, string]()
 
-	items1 := []SLItem[int, string]{
+	items1 := []Pair[int, string]{
 		{6, "hello, world"},
 		{4, "bar"},
 		{2, "foo"},
@@ -222,7 +222,7 @@ func TestSkipList_Merge(t *testing.T) {
 		{1, "bing"},
 	}
 
-	items2 := []SLItem[int, string]{
+	items2 := []Pair[int, string]{
 		{-1, "negOne"},
 		{2, "boom"},
 		{5, "bar"},
@@ -266,7 +266,7 @@ func TestNewCustomKeySkipList(t *testing.T) {
 }
 
 func TestSkipList_DeleteIterator(t *testing.T) {
-	items := []SLItem[int, string]{
+	items := []Pair[int, string]{
 		{-5, "beefcafe"},
 		{0, "foo"},
 		{1, "bar"},

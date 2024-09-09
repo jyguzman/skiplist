@@ -5,7 +5,7 @@ import (
 )
 
 func TestIterator_Next(t *testing.T) {
-	items := []SLItem[int, string]{
+	items := []Pair[int, string]{
 		{-5, "beefcafe"},
 		{0, "foo"},
 		{1, "bar"},
@@ -32,7 +32,7 @@ func TestIterator_Next(t *testing.T) {
 }
 
 func TestIterator_Prev(t *testing.T) {
-	items := []SLItem[int, string]{
+	items := []Pair[int, string]{
 		{-5, "beefcafe"},
 		{0, "foo"},
 		{1, "bar"},
@@ -69,7 +69,7 @@ func TestIterator_Prev(t *testing.T) {
 }
 
 func TestIteratorFromEnd(t *testing.T) {
-	items := []SLItem[int, string]{
+	items := []Pair[int, string]{
 		{-5, "beefcafe"},
 		{0, "foo"},
 		{1, "bar"},
@@ -97,7 +97,7 @@ func TestIteratorFromEnd(t *testing.T) {
 }
 
 func TestIterator_Range(t *testing.T) {
-	items := []SLItem[int, string]{
+	items := []Pair[int, string]{
 		{-5, "beefcafe"},
 		{0, "foo"},
 		{1, "bar"},
