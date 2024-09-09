@@ -114,7 +114,7 @@ func (sl *SkipList[K, V]) SetMaxLevel(newMaxLevel int) {
 		newMaxLevel = AbsoluteMaxLevel
 		log.Printf("Warning: maximum level clamped to %d\n", AbsoluteMaxLevel)
 	}
-	if sl.level < newMaxLevel {
+	if newMaxLevel < sl.level {
 		newMaxLevel = sl.level
 	}
 	for i := sl.maxLevel + 1; i < newMaxLevel; i++ {
