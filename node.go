@@ -40,7 +40,7 @@ type slNode[K, V any] struct {
 }
 
 // Level return the highest level this node is in
-func (sn *slNode[K, V]) Level() int {
+func (sn *slNode[K, V]) level() int {
 	return len(sn.forward) - 1
 }
 
@@ -49,7 +49,7 @@ func (sn *slNode[K, V]) String() string {
 }
 
 // Pair returns the key-value pair from this node
-func (sn *slNode[K, V]) Pair() *Pair[K, V] {
+func (sn *slNode[K, V]) pair() *Pair[K, V] {
 	return &Pair[K, V]{sn.key, sn.val}
 }
 

@@ -86,7 +86,7 @@ func (sl *SkipList[K, V]) First() *Pair[K, V] {
 	defer sl.rw.RUnlock()
 
 	if sl.header.forward[0] != nil {
-		return sl.header.forward[0].Pair()
+		return sl.header.forward[0].pair()
 	}
 	return nil
 }
@@ -99,7 +99,7 @@ func (sl *SkipList[K, V]) Last() *Pair[K, V] {
 	if sl.max == nil {
 		return nil
 	}
-	return sl.max.Pair()
+	return sl.max.pair()
 }
 
 // SetMaxLevel sets the max level of the skip list, up to 64. Inputs greater than 64 are clamped
@@ -307,7 +307,7 @@ func (sl *SkipList[K, V]) String() string {
 	rowHasNode := make([]bool, sl.level+1)
 
 	for column, node := 0, sl.header.forward[0]; node != nil; column, node = column+1, node.forward[0] {
-		for row, lvl := sl.level, 0; row >= 0 && lvl <= node.Level(); row, lvl = row-1, lvl+1 {
+		for row, lvl := sl.level, 0; row >= 0 && lvl <= node.level(); row, lvl = row-1, lvl+1 {
 			mat[row][column] = node.String()
 			rowHasNode[row] = true
 		}

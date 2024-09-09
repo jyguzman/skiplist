@@ -22,7 +22,7 @@ func TestSkipList_Set(t *testing.T) {
 	var res []Pair[int, string]
 	h := sl.header
 	for h.forward[0] != nil {
-		res = append(res, *h.forward[0].Pair())
+		res = append(res, *h.forward[0].pair())
 		h = h.forward[0]
 	}
 	if !slices.Equal(res, want) {
