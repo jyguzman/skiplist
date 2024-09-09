@@ -518,7 +518,8 @@ func (sl *SkipList[K, V]) delete(key K) {
 }
 
 // iterator returns an Iterator beginning at the given node and ending at node with the given endKey (exclusive).
-// If endKey is nil, the iterator goes until the end of the list
+// If endKey is nil, the iterator goes until the end of the list. If start is nil, this would suggest the list
+// is empty, so it returns nil.
 func (sl *SkipList[K, V]) iterator(start *SLNode[K, V], endKey *K) Iterator[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
