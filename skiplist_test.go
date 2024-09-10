@@ -33,6 +33,29 @@ func TestSkipList_Set(t *testing.T) {
 	}
 }
 
+func TestSkipList_DeleteAll(t *testing.T) {
+	sl := NewSkipList[int, string]()
+
+	items := []Pair[int, string]{
+		{-8, "hello, world"},
+		{-5, "bye, world"},
+		{2, "bar"},
+		{0, "foo"},
+		{10, "dijkstra"},
+		{3, "bing"},
+		{6, "bong"},
+	}
+
+	sl.SetAll(items)
+
+	sl.deleteAll(2, -5, 7, -1, 10)
+	fmt.Println(sl)
+	it := sl.IteratorFromEnd()
+	for it.Prev() {
+		fmt.Println(it.Key(), it.Value())
+	}
+}
+
 func TestSkipList_SetExistingKey(t *testing.T) {
 	sl := NewSkipList[int, string]()
 

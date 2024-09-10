@@ -80,7 +80,8 @@ func (sl *SkipList[K, V]) MaxLevel() int {
 	return sl.maxLevel + 1
 }
 
-// First returns the first element of the skip list. This is the element with the minimum key.
+// First returns the first element, or the element with the minimum key, of the skip list,
+// or nil if the list is empty. Time complexity: O(1).
 func (sl *SkipList[K, V]) First() *Pair[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
@@ -91,7 +92,8 @@ func (sl *SkipList[K, V]) First() *Pair[K, V] {
 	return nil
 }
 
-// Last returns the last element of the skip list. This is the element with the maximum key.
+// Last returns the last element, or the element with the maximum key, of the skip list,
+// or nil if the list is empty. Time complexity: O(1).
 func (sl *SkipList[K, V]) Last() *Pair[K, V] {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
@@ -127,7 +129,7 @@ func (sl *SkipList[K, V]) SetMaxLevel(newMaxLevel int) {
 }
 
 // Set sets a key to a value in the skip list. Returns true if this pair was newly inserted, or false
-// if this was an update.
+// if this was an update. Time complexity: O(logN), where N is the number of elements in the skip list.
 func (sl *SkipList[K, V]) Set(key K, val V) bool {
 	sl.rw.RLock()
 	update, x := sl.searchNode(key)
@@ -156,7 +158,9 @@ func (sl *SkipList[K, V]) Set(key K, val V) bool {
 		update[i].forward[i] = x
 	}
 	x.backward = update[0]
-
+	if x.forward[0] != nil {
+		x.forward[0].backward = x
+	}
 	if sl.max == nil || sl.lessThan(sl.max.key, x.key) {
 		sl.max = x
 	}
@@ -175,7 +179,8 @@ func (sl *SkipList[K, V]) SetAll(items []Pair[K, V]) {
 }
 
 // Delete removes the element with given key from the skip list. Returns the deleted value if it
-// existed and a bool indicating if it did.
+// existed and a bool indicating if it did. Time complexity: O(logN), where N is the number of
+// elements in the skip list.
 func (sl *SkipList[K, V]) Delete(key K) (V, bool) {
 	sl.rw.RLock()
 	update, x := sl.searchNode(key)
@@ -213,8 +218,9 @@ func (sl *SkipList[K, V]) Delete(key K) (V, bool) {
 	return val, false
 }
 
-// DeleteAll elements with the given keys.
-func (sl *SkipList[K, V]) DeleteAll(keys []K) {
+// DeleteAll elements with the given keys. Time complexity: O(MlogN), where M
+// is the number of keys, and N is the number of elements of the skip list.
+func (sl *SkipList[K, V]) DeleteAll(keys ...K) {
 	sl.rw.Lock()
 	for _, key := range keys {
 		sl.delete(key)
@@ -223,6 +229,7 @@ func (sl *SkipList[K, V]) DeleteAll(keys []K) {
 }
 
 // Get returns the value associated with the key if the key exists and a bool indicating if it does.
+// Time complexity: O(logN), where N is the number of elements in the skip list.
 func (sl *SkipList[K, V]) Get(key K) (V, bool) {
 	sl.rw.RLock()
 	defer sl.rw.RUnlock()
@@ -481,7 +488,9 @@ func (sl *SkipList[K, V]) set(key K, val V) {
 			update[i].forward[i] = x
 		}
 		x.backward = update[0]
-
+		if x.forward[0] != nil {
+			x.forward[0].backward = x
+		}
 		if sl.max == nil || sl.lessThan(sl.max.key, x.key) {
 			sl.max = x
 		}
