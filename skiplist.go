@@ -128,9 +128,10 @@ func (sl *SkipList[K, V]) SetMaxLevel(newMaxLevel int) {
 	sl.rw.RUnlock()
 }
 
-// Set sets a key to a value in the skip list. Returns true if this pair was newly inserted, or false
-// if this was an update. Time complexity: O(logN), where N is the number of elements in the skip list.
-func (sl *SkipList[K, V]) Set(key K, val V) bool {
+// Set sets a key to a value in the skip list. Returns true if this is pair was newly inserted. If
+// this updated an existing key, returns the old value and false.
+// Time complexity: O(logN), where N is the number of elements in the skip list.
+func (sl *SkipList[K, V]) Set(key K, val V) (bool, V) {
 	sl.rw.RLock()
 	update, x := sl.searchNode(key)
 	x = x.forward[0]
@@ -139,9 +140,11 @@ func (sl *SkipList[K, V]) Set(key K, val V) bool {
 	sl.rw.Lock()
 	defer sl.rw.Unlock()
 
+	var oldVal V
 	if x != nil && !sl.lessThan(key, x.key) {
+		oldVal = x.val
 		x.val = val
-		return false
+		return false, oldVal
 	}
 
 	lvl := sl.randomLevel()
@@ -166,7 +169,7 @@ func (sl *SkipList[K, V]) Set(key K, val V) bool {
 	}
 
 	sl.size++
-	return true
+	return true, oldVal
 }
 
 // SetAll inserts each key-value pair in an array of pairs into the skip list.
